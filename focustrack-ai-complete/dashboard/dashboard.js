@@ -406,6 +406,11 @@ document.getElementById('dateRange').addEventListener('change', (e) => {
   loadData();
 });
 
+// Settings button
+document.getElementById('openSettingsBtn').addEventListener('click', () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL('settings/settings.html') });
+});
+
 // Load data on startup
 loadData();
 

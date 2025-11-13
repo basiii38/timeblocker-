@@ -147,12 +147,37 @@
     .empty p {
       font-size: 14px;
     }
+
+    .settings-btn {
+      padding: 10px 20px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: #1f2937;
+      transition: all 0.2s;
+    }
+
+    .settings-btn:hover {
+      background: #f3f4f6;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>FocusTrack AI Dashboard</h1>
-    <p>Productivity Analytics</p>
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <h1>FocusTrack AI Dashboard</h1>
+        <p>Productivity Analytics</p>
+      </div>
+      <button id="openSettingsBtn" class="settings-btn">
+        ⚙️ Settings
+      </button>
+    </div>
     <div style="margin-top: 16px;">
       <select id="dateRange" style="padding: 8px 12px; border-radius: 6px; border: 1px solid #e5e7eb; font-size: 14px;">
         <option value="today">Today</option>

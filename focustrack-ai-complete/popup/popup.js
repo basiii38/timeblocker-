@@ -2,6 +2,8 @@
 console.log('Popup loaded');
 
 let focusSession = null;
+let breakTimer = null;
+let currentDomain = null;
 
 function formatTime(seconds) {
   const hours = Math.floor(seconds / 3600);
@@ -37,6 +39,13 @@ async function loadData() {
     if (sessionResponse && sessionResponse.success) {
       focusSession = sessionResponse.data;
       updateFocusUI();
+    }
+
+    // Get break timer
+    const breakResponse = await chrome.runtime.sendMessage({ action: 'getBreakTimer' });
+    if (breakResponse && breakResponse.success) {
+      breakTimer = breakResponse.data;
+      updateBreakUI();
     }
   } catch (error) {
     console.error('Load error:', error);
@@ -105,13 +114,18 @@ function updateCurrentSite(data) {
 
   if (data.status === 'tracking' && data.currentTab) {
     section.style.display = 'block';
+    currentDomain = data.currentTab.domain;
     document.getElementById('currentDomain').textContent = data.currentTab.domain;
     document.getElementById('currentTime').textContent = formatTime(data.currentDuration);
     const badge = document.getElementById('currentCategory');
     badge.textContent = data.currentTab.category;
     badge.className = 'category-badge ' + data.currentTab.category;
+
+    // Reset category selector
+    document.getElementById('categorySelector').value = '';
   } else {
     section.style.display = 'none';
+    currentDomain = null;
   }
 }
 
@@ -125,6 +139,19 @@ function updateFocusUI() {
   } else {
     document.getElementById('focusStart').style.display = 'block';
     document.getElementById('focusActive').style.display = 'none';
+  }
+}
+
+function updateBreakUI() {
+  if (breakTimer) {
+    document.getElementById('breakStart').style.display = 'none';
+    document.getElementById('breakActive').style.display = 'block';
+
+    const remaining = Math.floor((breakTimer.endTime - Date.now()) / 60000);
+    document.getElementById('breakTime').textContent = remaining + ' min left';
+  } else {
+    document.getElementById('breakStart').style.display = 'block';
+    document.getElementById('breakActive').style.display = 'none';
   }
 }
 
@@ -186,6 +213,73 @@ document.addEventListener('DOMContentLoaded', () => {
   // Open settings button
   document.getElementById('openSettingsBtn').addEventListener('click', () => {
     chrome.tabs.create({ url: chrome.runtime.getURL('settings/settings.html') });
+  });
+
+  // Break timer buttons
+  const breakButtons = document.querySelectorAll('[data-break]');
+  breakButtons.forEach(button => {
+    button.addEventListener('click', async () => {
+      const minutes = parseInt(button.getAttribute('data-break'));
+      console.log('Starting break timer:', minutes);
+      try {
+        const response = await chrome.runtime.sendMessage({
+          action: 'startBreakTimer',
+          minutes: minutes
+        });
+        if (response.success) {
+          breakTimer = response.data;
+          updateBreakUI();
+        }
+      } catch (error) {
+        console.error('Break start error:', error);
+      }
+    });
+  });
+
+  // End break button
+  document.getElementById('endBreakBtn').addEventListener('click', async () => {
+    console.log('Ending break timer');
+    breakTimer = null;
+    updateBreakUI();
+  });
+
+  // Category selector
+  document.getElementById('categorySelector').addEventListener('change', async (e) => {
+    const newCategory = e.target.value;
+    if (!newCategory || !currentDomain) return;
+
+    console.log('Changing category for', currentDomain, 'to', newCategory);
+    try {
+      // Get current custom categories
+      const response = await chrome.runtime.sendMessage({
+        action: 'getSetting',
+        key: 'customCategories',
+        defaultValue: {}
+      });
+
+      let customCategories = response.success ? response.data : {};
+      customCategories[currentDomain] = newCategory;
+
+      // Save updated categories
+      await chrome.runtime.sendMessage({
+        action: 'saveSetting',
+        key: 'customCategories',
+        value: customCategories
+      });
+
+      // Show confirmation by updating the badge
+      const badge = document.getElementById('currentCategory');
+      badge.textContent = newCategory;
+      badge.className = 'category-badge ' + newCategory;
+
+      // Reset selector
+      e.target.value = '';
+
+      // Reload data to reflect changes
+      setTimeout(loadData, 500);
+    } catch (error) {
+      console.error('Category change error:', error);
+    }
   });
 
   // Load initial data

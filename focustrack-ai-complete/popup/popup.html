@@ -202,6 +202,53 @@
       font-weight: 700;
       color: #047857;
     }
+
+    .break-active {
+      background: #fef3c7;
+      border: 2px solid #f59e0b;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .break-text {
+      font-weight: 600;
+      color: #92400e;
+      margin-bottom: 8px;
+    }
+
+    .break-time {
+      font-size: 24px;
+      font-weight: 700;
+      color: #d97706;
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #4b5563;
+    }
+
+    .btn-secondary:hover {
+      background: #e5e7eb;
+    }
+
+    .btn-small {
+      padding: 6px 12px;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+
+    .category-selector {
+      margin-top: 8px;
+      padding: 8px;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      background: white;
+      font-size: 12px;
+      cursor: pointer;
+      width: 100%;
+    }
   </style>
 </head>
 <body>
@@ -229,6 +276,13 @@
         <div class="current-time" id="currentTime">--</div>
         <span class="category-badge" id="currentCategory">-</span>
       </div>
+      <select class="category-selector" id="categorySelector">
+        <option value="">Change Category...</option>
+        <option value="productive">Productive</option>
+        <option value="neutral">Neutral</option>
+        <option value="distracting">Distracting</option>
+        <option value="uncategorized">Uncategorized</option>
+      </select>
     </div>
 
     <!-- Focus Session -->
@@ -242,11 +296,30 @@
       </div>
 
       <div id="focusStart">
-        <div class="section-title">Start Focus Session</div>
+        <div class="section-title">🎯 Focus Session (Pomodoro)</div>
         <div class="focus-buttons">
           <button class="btn btn-primary" data-duration="25">25 min</button>
           <button class="btn btn-primary" data-duration="45">45 min</button>
           <button class="btn btn-primary" data-duration="60">60 min</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Break Timer -->
+    <div class="section">
+      <div id="breakActive" style="display:none;">
+        <div class="break-active">
+          <div class="break-text">☕ Break Time</div>
+          <div class="break-time" id="breakTime">--</div>
+        </div>
+        <button class="btn btn-secondary btn-full" id="endBreakBtn">End Break</button>
+      </div>
+
+      <div id="breakStart">
+        <div class="section-title">☕ Take a Break</div>
+        <div class="focus-buttons">
+          <button class="btn btn-secondary" data-break="5">5 min</button>
+          <button class="btn btn-secondary" data-break="15">15 min</button>
         </div>
       </div>
     </div>
