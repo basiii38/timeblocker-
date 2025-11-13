@@ -3,6 +3,8 @@ console.log('Popup loaded');
 
 let focusSession = null;
 let breakTimer = null;
+let allowedSites = [];
+let currentDomain = null;
 
 function formatTime(seconds) {
   const hours = Math.floor(seconds / 3600);
@@ -113,6 +115,7 @@ function updateCurrentSite(data) {
 
   if (data.status === 'tracking' && data.currentTab) {
     section.style.display = 'block';
+    currentDomain = data.currentTab.domain;
     document.getElementById('currentDomain').textContent = data.currentTab.domain;
     document.getElementById('currentTime').textContent = formatTime(data.currentDuration);
     const badge = document.getElementById('currentCategory');
@@ -120,6 +123,7 @@ function updateCurrentSite(data) {
     badge.className = 'category-badge ' + data.currentTab.category;
   } else {
     section.style.display = 'none';
+    currentDomain = null;
   }
 }
 
@@ -157,15 +161,54 @@ function showError() {
     '<div class="empty">Error loading data<br>Check console for details</div>';
 }
 
+// Whitelist management
+function loadWhitelist() {
+  const stored = localStorage.getItem('focusWhitelist');
+  allowedSites = stored ? JSON.parse(stored) : [];
+  renderWhitelist();
+}
+
+function saveWhitelist() {
+  localStorage.setItem('focusWhitelist', JSON.stringify(allowedSites));
+  renderWhitelist();
+}
+
+function renderWhitelist() {
+  const container = document.getElementById('whitelistSites');
+  if (allowedSites.length === 0) {
+    container.innerHTML = '<div style="color: #adb5bd; font-size: 12px; padding: 10px; text-align: center;">No sites added. All distracting sites will be blocked.</div>';
+  } else {
+    container.innerHTML = allowedSites.map(site => `
+      <div class="site-chip">
+        <span>${site}</span>
+        <button onclick="removeFromWhitelist('${site}')">×</button>
+      </div>
+    `).join('');
+  }
+}
+
+function addToWhitelist() {
+  const input = document.getElementById('whitelistInput');
+  const site = input.value.trim().toLowerCase();
+
+  if (!site) return;
+
+  if (!allowedSites.includes(site)) {
+    allowedSites.push(site);
+    saveWhitelist();
+  }
+
+  input.value = '';
+}
+
+window.removeFromWhitelist = function(site) {
+  allowedSites = allowedSites.filter(s => s !== site);
+  saveWhitelist();
+};
+
 // Start focus session function
 async function startFocusSession(duration) {
-  console.log('Starting focus session:', duration);
-
-  // Get allowed sites from input
-  const allowedSitesInput = document.getElementById('allowedSites').value.trim();
-  const allowedSites = allowedSitesInput
-    ? allowedSitesInput.split(',').map(s => s.trim().toLowerCase()).filter(s => s.length > 0)
-    : [];
+  console.log('Starting focus session:', duration, 'with whitelist:', allowedSites);
 
   try {
     const response = await chrome.runtime.sendMessage({
@@ -182,9 +225,65 @@ async function startFocusSession(duration) {
   }
 }
 
+// Category change
+async function changeCategory(newCategory) {
+  if (!currentDomain) return;
+
+  console.log('Changing category for', currentDomain, 'to', newCategory);
+  try {
+    // Get current custom categories
+    const response = await chrome.runtime.sendMessage({
+      action: 'getSetting',
+      key: 'customCategories',
+      defaultValue: {}
+    });
+
+    let customCategories = response.success ? response.data : {};
+    customCategories[currentDomain] = newCategory;
+
+    // Save updated categories
+    await chrome.runtime.sendMessage({
+      action: 'saveSetting',
+      key: 'customCategories',
+      value: customCategories
+    });
+
+    // Update UI
+    const badge = document.getElementById('currentCategory');
+    badge.textContent = newCategory;
+    badge.className = 'category-badge ' + newCategory;
+
+    // Close modal
+    document.getElementById('categoryModal').classList.remove('show');
+
+    // Reload data
+    setTimeout(loadData, 500);
+  } catch (error) {
+    console.error('Category change error:', error);
+  }
+}
+
+// Smart tab management
+async function openInTab(url) {
+  const tabs = await chrome.tabs.query({});
+  const existingTab = tabs.find(tab => tab.url === url);
+
+  if (existingTab) {
+    // Focus existing tab
+    await chrome.tabs.update(existingTab.id, { active: true });
+    await chrome.windows.update(existingTab.windowId, { focused: true });
+  } else {
+    // Open new tab
+    chrome.tabs.create({ url: url });
+  }
+}
+
 // Event listeners - NO INLINE HANDLERS!
 document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM loaded, attaching event listeners...');
+
+  // Load whitelist
+  loadWhitelist();
 
   // Focus session buttons
   const focusButtons = document.querySelectorAll('[data-duration]');
@@ -207,14 +306,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Open dashboard button
+  // Open dashboard button (with smart tab reuse)
   document.getElementById('openDashboardBtn').addEventListener('click', () => {
-    chrome.tabs.create({ url: chrome.runtime.getURL('dashboard/dashboard.html') });
+    openInTab(chrome.runtime.getURL('dashboard/dashboard.html'));
   });
 
-  // Open settings button
+  // Open settings button (with smart tab reuse)
   document.getElementById('openSettingsBtn').addEventListener('click', () => {
-    chrome.tabs.create({ url: chrome.runtime.getURL('settings/settings.html') });
+    openInTab(chrome.runtime.getURL('settings/settings.html'));
   });
 
   // Break timer buttons
@@ -243,6 +342,49 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Ending break timer');
     breakTimer = null;
     updateBreakUI();
+  });
+
+  // Whitelist modal
+  document.getElementById('manageWhitelistBtn').addEventListener('click', () => {
+    document.getElementById('whitelistModal').classList.add('show');
+  });
+
+  document.getElementById('closeWhitelistModal').addEventListener('click', () => {
+    document.getElementById('whitelistModal').classList.remove('show');
+  });
+
+  document.getElementById('addWhitelistSite').addEventListener('click', addToWhitelist);
+
+  document.getElementById('whitelistInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') addToWhitelist();
+  });
+
+  // Category modal
+  document.getElementById('changeCategoryBtn').addEventListener('click', () => {
+    if (!currentDomain) return;
+    document.getElementById('categoryDomainName').textContent = currentDomain;
+    document.getElementById('categoryModal').classList.add('show');
+  });
+
+  document.getElementById('closeCategoryModal').addEventListener('click', () => {
+    document.getElementById('categoryModal').classList.remove('show');
+  });
+
+  // Category options
+  document.querySelectorAll('.category-option').forEach(option => {
+    option.addEventListener('click', () => {
+      const category = option.getAttribute('data-category');
+      changeCategory(category);
+    });
+  });
+
+  // Close modals on background click
+  document.querySelectorAll('.modal').forEach(modal => {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.classList.remove('show');
+      }
+    });
   });
 
   // Load initial data

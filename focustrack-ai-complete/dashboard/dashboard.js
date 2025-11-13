@@ -48,12 +48,66 @@ async function loadData() {
       const entries = response.data || [];
       console.log('Processing', entries.length, 'entries');
       processData(entries);
+
+      // Load additional stats
+      loadAdditionalStats();
     } else {
       showEmpty();
     }
   } catch (error) {
     console.error('Dashboard error:', error);
     showEmpty();
+  }
+}
+
+async function loadAdditionalStats() {
+  try {
+    // Get focus sessions
+    const sessionsResponse = await chrome.runtime.sendMessage({ action: 'getFocusSessions' });
+    const sessions = sessionsResponse.success ? sessionsResponse.data || [] : [];
+
+    // Get goals
+    const goalsResponse = await chrome.runtime.sendMessage({ action: 'getGoals' });
+    const goals = goalsResponse.success ? goalsResponse.data || [] : [];
+
+    // Filter by date range
+    const now = Date.now();
+    let startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+
+    if (currentDateRange === 'week') {
+      startDate.setDate(startDate.getDate() - 7);
+    } else if (currentDateRange === 'month') {
+      startDate.setDate(startDate.getDate() - 30);
+    }
+
+    const filteredSessions = sessions.filter(s => s.startTime >= startDate.getTime());
+    const completedSessions = filteredSessions.filter(s => s.completed);
+
+    // Update focus sessions stats
+    document.getElementById('focusSessionsCount').textContent = filteredSessions.length;
+    if (filteredSessions.length > 0) {
+      const completionRate = Math.round((completedSessions.length / filteredSessions.length) * 100);
+      document.getElementById('focusSessionsRate').textContent = `${completionRate}% completion rate`;
+    } else {
+      document.getElementById('focusSessionsRate').textContent = 'No sessions yet';
+    }
+
+    // Update goals stats
+    const activeGoals = goals.filter(g => g.enabled);
+    document.getElementById('goalsAchieved').textContent = '0'; // Placeholder - would need goal tracking logic
+    document.getElementById('goalsTotal').textContent = `of ${activeGoals.length} active goals`;
+
+    // Update avg session time
+    if (completedSessions.length > 0) {
+      const avgDuration = completedSessions.reduce((sum, s) => sum + s.duration, 0) / completedSessions.length;
+      document.getElementById('avgSessionTime').textContent = `${Math.round(avgDuration)} min`;
+    } else {
+      document.getElementById('avgSessionTime').textContent = '--';
+    }
+
+  } catch (error) {
+    console.error('Error loading additional stats:', error);
   }
 }
 
@@ -406,9 +460,21 @@ document.getElementById('dateRange').addEventListener('change', (e) => {
   loadData();
 });
 
-// Settings button
-document.getElementById('openSettingsBtn').addEventListener('click', () => {
-  chrome.tabs.create({ url: chrome.runtime.getURL('settings/settings.html') + '?from=dashboard' });
+// Settings button (with smart tab reuse)
+document.getElementById('openSettingsBtn').addEventListener('click', async () => {
+  const url = chrome.runtime.getURL('settings/settings.html') + '?from=dashboard';
+  const tabs = await chrome.tabs.query({});
+  const settingsUrl = chrome.runtime.getURL('settings/settings.html');
+  const existingTab = tabs.find(tab => tab.url.startsWith(settingsUrl));
+
+  if (existingTab) {
+    // Focus existing tab and update URL with query param
+    await chrome.tabs.update(existingTab.id, { active: true, url: url });
+    await chrome.windows.update(existingTab.windowId, { focused: true });
+  } else {
+    // Open new tab
+    chrome.tabs.create({ url: url });
+  }
 });
 
 // Load data on startup

@@ -314,6 +314,7 @@ async function handleMessage(message) {
     case 'saveSetting': await saveSetting(message.key, message.value); if (message.key === 'customCategories') customCategories = message.value; return { success: true };
     case 'getSetting': return { success: true, data: await getSetting(message.key, message.defaultValue) };
     case 'exportData': return { success: true, data: await exportAllData() };
+    case 'getFocusSessions': return { success: true, data: await dbOp('focusSessions', 'readonly', store => store.getAll()) };
     default: return { success: false, error: 'Unknown action' };
   }
 }

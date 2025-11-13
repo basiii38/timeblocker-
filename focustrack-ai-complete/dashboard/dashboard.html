@@ -207,6 +207,25 @@
       </div>
     </div>
 
+    <!-- Additional Stats Row -->
+    <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+      <div class="stat-card" style="background: linear-gradient(135deg, #51cf66 0%, #37b24d 100%); color: white;">
+        <div class="stat-label" style="color: rgba(255,255,255,0.9);">Focus Sessions</div>
+        <div class="stat-value" style="color: white;" id="focusSessionsCount">--</div>
+        <div class="stat-details" style="opacity: 0.9; font-size: 12px;" id="focusSessionsRate">--</div>
+      </div>
+      <div class="stat-card" style="background: linear-gradient(135deg, #ffd43b 0%, #fab005 100%); color: white;">
+        <div class="stat-label" style="color: rgba(255,255,255,0.9);">Goals Achieved</div>
+        <div class="stat-value" style="color: white;" id="goalsAchieved">--</div>
+        <div class="stat-details" style="opacity: 0.9; font-size: 12px;" id="goalsTotal">--</div>
+      </div>
+      <div class="stat-card" style="background: linear-gradient(135deg, #ff6b6b 0%, #fa5252 100%); color: white;">
+        <div class="stat-label" style="color: rgba(255,255,255,0.9);">Avg Session</div>
+        <div class="stat-value" style="color: white;" id="avgSessionTime">--</div>
+        <div class="stat-details" style="opacity: 0.9; font-size: 12px;">Focus duration</div>
+      </div>
+    </div>
+
     <!-- Charts Section -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px; margin-bottom: 32px;">
       <div class="chart-card">
