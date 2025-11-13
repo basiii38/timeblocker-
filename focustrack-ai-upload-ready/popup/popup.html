@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FocusTrack AI</title>
+  <link rel="stylesheet" href="../styles/popup.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>FocusTrack AI</h1>
+      <p class="subtitle">Your productivity companion</p>
+    </div>
+
+    <!-- Productivity Score -->
+    <div class="score-card">
+      <div class="score-label">Today's Productivity Score</div>
+      <div class="score-value" id="score">--%</div>
+      <div class="score-details">
+        <span id="productiveTime">--</span> productive · <span id="distractingTime">--</span> distracting
+      </div>
+    </div>
+
+    <!-- Current Site -->
+    <div class="current-site" id="currentSite" style="display:none;">
+      <div class="current-site-header">
+        <span>Currently on:</span>
+        <span class="category-badge" id="currentCategory">-</span>
+      </div>
+      <div class="current-site-domain" id="currentDomain">-</div>
+      <div class="current-site-time" id="currentTime">--</div>
+      <button class="btn btn-danger btn-small" id="blockCurrentBtn">Block This Site</button>
+    </div>
+
+    <!-- Focus Session -->
+    <div class="focus-section">
+      <div id="focusActive" class="focus-active" style="display:none;">
+        <div class="focus-active-header">
+          <span>Focus Session Active 🎯</span>
+        </div>
+        <div class="focus-time" id="focusTimeRemaining">-- minutes remaining</div>
+        <button class="btn btn-danger btn-small" id="endFocusBtn">End Session</button>
+      </div>
+
+      <div id="focusStart">
+        <div class="section-title">Start Focus Session</div>
+        <div class="focus-buttons">
+          <button class="btn btn-primary btn-small" data-duration="25">25 min</button>
+          <button class="btn btn-primary btn-small" data-duration="45">45 min</button>
+          <button class="btn btn-primary btn-small" data-duration="60">60 min</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Sites -->
+    <div class="top-sites">
+      <div class="section-title">Top Sites Today</div>
+      <div id="topSitesList"></div>
+    </div>
+
+    <!-- Dashboard Button -->
+    <button class="btn btn-primary" id="openDashboardBtn">Open Full Dashboard</button>
+  </div>
+
+  <script src="popup.js" type="module"></script>
+</body>
+</html>

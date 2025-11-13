@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FocusTrack AI - Dashboard</title>
+  <link rel="stylesheet" href="../styles/dashboard.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="header">
+    <div class="container">
+      <div class="header-content">
+        <div>
+          <h1>FocusTrack AI</h1>
+          <p>Productivity Dashboard</p>
+        </div>
+        <div class="time-range">
+          <button class="range-btn active" data-range="today">Today</button>
+          <button class="range-btn" data-range="week">Week</button>
+          <button class="range-btn" data-range="month">Month</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Productivity Score</div>
+        <div class="stat-value" id="scoreValue">--%</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Productive Time</div>
+        <div class="stat-value" id="productiveValue">--</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Distracting Time</div>
+        <div class="stat-value" id="distractingValue">--</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Tracked</div>
+        <div class="stat-value" id="totalValue">--</div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-card">
+        <h2>Time by Category</h2>
+        <canvas id="pieChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <h2>Top 10 Sites</h2>
+        <canvas id="barChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h2>Hourly Breakdown</h2>
+      <canvas id="lineChart"></canvas>
+    </div>
+
+    <div class="chart-card">
+      <h2>Detailed Site Breakdown</h2>
+      <table id="sitesTable">
+        <thead>
+          <tr>
+            <th>Site</th>
+            <th>Category</th>
+            <th>Time Spent</th>
+            <th>Percentage</th>
+          </tr>
+        </thead>
+        <tbody id="sitesTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="dashboard.js" type="module"></script>
+</body>
+</html>
