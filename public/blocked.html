@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Site Blocked - FocusTrack AI</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 600px;
+      width: 100%;
+      padding: 60px 40px;
+      text-align: center;
+    }
+
+    .icon {
+      font-size: 80px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      color: #2d3748;
+      font-size: 32px;
+      margin-bottom: 10px;
+    }
+
+    .domain {
+      color: #667eea;
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 30px;
+    }
+
+    .message {
+      color: #4a5568;
+      font-size: 18px;
+      line-height: 1.6;
+      margin-bottom: 40px;
+    }
+
+    .motivation {
+      background: #f7fafc;
+      border-left: 4px solid #667eea;
+      padding: 20px;
+      margin-bottom: 40px;
+      font-style: italic;
+      color: #2d3748;
+      border-radius: 4px;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 40px;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 36px;
+      font-weight: 700;
+      color: #667eea;
+    }
+
+    .stat-label {
+      color: #718096;
+      font-size: 14px;
+      margin-top: 5px;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 15px 30px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .primary-btn {
+      background: #667eea;
+      color: white;
+    }
+
+    .primary-btn:hover {
+      background: #5568d3;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .secondary-btn {
+      background: #e2e8f0;
+      color: #2d3748;
+    }
+
+    .secondary-btn:hover {
+      background: #cbd5e0;
+    }
+
+    .timer {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #718096;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .container {
+      animation: fadeIn 0.5s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">🚫</div>
+    <h1>This site is blocked</h1>
+    <div class="domain" id="domain">Loading...</div>
+
+    <div class="message">
+      You've blocked this site to stay focused and productive. Keep up the great work!
+    </div>
+
+    <div class="motivation" id="motivation">
+      "The secret of getting ahead is getting started." - Mark Twain
+    </div>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-value" id="timeSaved">--</div>
+        <div class="stat-label">Minutes Saved Today</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value" id="productivity">--</div>
+        <div class="stat-label">Productivity Score</div>
+      </div>
+    </div>
+
+    <div class="buttons">
+      <button class="primary-btn" onclick="goBack()">← Go Back</button>
+      <button class="secondary-btn" onclick="takeBreak()">Take 5-min Break</button>
+    </div>
+
+    <div class="timer" id="timer"></div>
+  </div>
+
+  <script>
+    const motivationalQuotes = [
+      "The secret of getting ahead is getting started. - Mark Twain",
+      "Focus on being productive instead of busy. - Tim Ferriss",
+      "Concentrate all your thoughts upon the work in hand. The sun's rays do not burn until brought to a focus. - Alexander Graham Bell",
+      "It's not always that we need to do more but rather that we need to focus on less. - Nathan W. Morris",
+      "Productivity is never an accident. It is always the result of a commitment to excellence. - Paul J. Meyer",
+      "The key is not to prioritize what's on your schedule, but to schedule your priorities. - Stephen Covey",
+      "You were born to win, but to be a winner, you must plan to win, prepare to win, and expect to win. - Zig Ziglar",
+      "Action is the foundational key to all success. - Pablo Picasso",
+      "The way to get started is to quit talking and begin doing. - Walt Disney",
+      "Don't watch the clock; do what it does. Keep going. - Sam Levenson"
+    ];
+
+    // Get URL parameters
+    const params = new URLSearchParams(window.location.search);
+    const domain = params.get('domain') || 'this site';
+    const reason = params.get('reason') || 'blocked';
+
+    // Display domain
+    document.getElementById('domain').textContent = domain;
+
+    // Display random motivational quote
+    const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
+    document.getElementById('motivation').textContent = `"${randomQuote}"`;
+
+    // Load stats from background
+    chrome.runtime.sendMessage({ action: 'getTodayStats' }, (response) => {
+      if (response.success) {
+        const entries = response.data;
+
+        // Calculate time saved (approximate)
+        chrome.runtime.sendMessage({ action: 'getSettings' }, (settingsResponse) => {
+          if (settingsResponse.success) {
+            const blockedAttempts = settingsResponse.data.blockedAttemptsToday || 0;
+            document.getElementById('timeSaved').textContent = blockedAttempts * 5;
+          }
+        });
+
+        // Calculate productivity score
+        let productiveTime = 0;
+        let distractingTime = 0;
+
+        for (const entry of entries) {
+          if (entry.category === 'productive') {
+            productiveTime += entry.duration;
+          } else if (entry.category === 'distracting') {
+            distractingTime += entry.duration;
+          }
+        }
+
+        const totalTime = productiveTime + distractingTime;
+        const score = totalTime > 0 ? Math.round((productiveTime / totalTime) * 100) : 0;
+
+        document.getElementById('productivity').textContent = score;
+      }
+    });
+
+    // Increment blocked attempts counter
+    chrome.runtime.sendMessage({ action: 'saveSetting', key: 'blockedAttemptsToday', value: Date.now() });
+
+    function goBack() {
+      window.history.back();
+    }
+
+    let breakActive = false;
+    let breakTimer = null;
+
+    function takeBreak() {
+      if (breakActive) return;
+
+      breakActive = true;
+
+      // Send message to temporarily unblock
+      chrome.runtime.sendMessage({
+        action: 'temporaryUnblock',
+        domain: domain,
+        minutes: 5
+      }, (response) => {
+        if (response.success) {
+          // Start countdown
+          let secondsLeft = 5 * 60;
+          const timerEl = document.getElementById('timer');
+
+          breakTimer = setInterval(() => {
+            secondsLeft--;
+
+            const minutes = Math.floor(secondsLeft / 60);
+            const seconds = secondsLeft % 60;
+
+            timerEl.textContent = `Break time remaining: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+            if (secondsLeft <= 0) {
+              clearInterval(breakTimer);
+              timerEl.textContent = 'Break time is over. Site is blocked again.';
+            }
+          }, 1000);
+
+          // Redirect to the site
+          const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+          window.location.href = `${protocol}//${domain}`;
+        }
+      });
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300 transition-colors;
+  }
+
+  .btn-success {
+    @apply px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors;
+  }
+
+  .btn-danger {
+    @apply px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors;
+  }
+
+  .stat-card {
+    @apply bg-white rounded-lg p-4 shadow-sm border border-gray-200;
+  }
+
+  .category-productive {
+    @apply text-green-600 bg-green-50;
+  }
+
+  .category-neutral {
+    @apply text-yellow-600 bg-yellow-50;
+  }
+
+  .category-distracting {
+    @apply text-red-600 bg-red-50;
+  }
+
+  .category-uncategorized {
+    @apply text-gray-600 bg-gray-50;
+  }
+}
