@@ -44,14 +44,23 @@ async function loadData() {
       });
     }
 
+    console.log('Dashboard response:', response);
+
     if (response && response.success) {
       const entries = response.data || [];
-      console.log('Processing', entries.length, 'entries');
-      processData(entries);
+      console.log('Processing', entries.length, 'entries:', entries);
+
+      if (entries.length === 0) {
+        console.warn('No entries found! Dashboard will show empty state.');
+        showEmpty();
+      } else {
+        processData(entries);
+      }
 
       // Load additional stats
       loadAdditionalStats();
     } else {
+      console.error('Failed to load stats:', response);
       showEmpty();
     }
   } catch (error) {
@@ -156,6 +165,8 @@ function updateAchievementsDisplay(achievements) {
 }
 
 function processData(entries) {
+  console.log('processData called with', entries.length, 'entries');
+
   let productive = 0, distracting = 0, neutral = 0, uncategorized = 0;
   const domainMap = {};
   const hourlyMap = {};
@@ -195,9 +206,13 @@ function processData(entries) {
   const score = total > 0 ? Math.round((productive / total) * 100) : 0;
   const totalTime = productive + distracting + neutral + uncategorized;
 
+  console.log('Calculated stats:', { score, productive, distracting, neutral, totalTime });
+
   const topSites = Object.values(domainMap)
     .sort((a, b) => b.time - a.time)
     .slice(0, 20);
+
+  console.log('Top sites:', topSites.length);
 
   updateStats({ score, productive, distracting, neutral, totalTime });
   updateCategoryChart({ productive, distracting, neutral, uncategorized });

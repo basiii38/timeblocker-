@@ -479,51 +479,33 @@
       </div>
     </div>
 
-    <!-- Focus Session -->
+    <!-- Focus Session with Pomodoro -->
     <div class="section">
       <div id="focusActive" style="display:none;">
         <div class="focus-active">
-          <div class="focus-text">🎯 Focus Session Active</div>
+          <div class="focus-text" id="focusSessionType">🎯 Focus Session Active</div>
           <div class="focus-time" id="focusTime">--</div>
         </div>
         <button class="btn btn-primary btn-full" id="endFocusBtn">End Session</button>
       </div>
 
       <div id="focusStart">
-        <div class="section-title">🎯 Focus Session</div>
+        <div class="section-title">🎯 Focus Session & Pomodoro</div>
+        <div style="font-size: 12px; color: #6c757d; margin-bottom: 12px;">Work Sessions:</div>
         <div class="focus-buttons">
-          <button class="btn btn-primary" data-duration="25">25 min</button>
-          <button class="btn btn-primary" data-duration="45">45 min</button>
-          <button class="btn btn-primary" data-duration="60">60 min</button>
+          <button class="btn btn-primary" data-duration="25" data-type="pomodoro">🍅 25 min</button>
+          <button class="btn btn-primary" data-duration="45" data-type="focus">45 min</button>
+          <button class="btn btn-primary" data-duration="60" data-type="focus">60 min</button>
+          <button class="btn btn-primary" data-duration="90" data-type="focus">90 min</button>
+        </div>
+        <div style="font-size: 12px; color: #6c757d; margin: 12px 0 8px 0;">Break Sessions:</div>
+        <div class="focus-buttons">
+          <button class="btn btn-secondary" data-duration="5" data-type="break">5 min</button>
+          <button class="btn btn-secondary" data-duration="15" data-type="break">15 min</button>
         </div>
         <button class="btn-icon" id="manageWhitelistBtn">
           <span>⚙️</span>
-          <span>Manage Allowed Sites</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Pomodoro Timer -->
-    <div class="section">
-      <div id="pomodoroActive" style="display:none;">
-        <div class="focus-active">
-          <div class="focus-text">🍅 Pomodoro Active</div>
-          <div class="focus-time" id="pomodoroTime">--</div>
-          <div style="font-size: 11px; color: #6c757d; margin-top: 4px;" id="pomodoroType">Work Session</div>
-        </div>
-        <button class="btn btn-danger btn-full" id="endPomodoroBtn">End Pomodoro</button>
-      </div>
-
-      <div id="pomodoroStart">
-        <div class="section-title">🍅 Pomodoro Timer</div>
-        <div class="focus-buttons">
-          <button class="btn btn-secondary" id="pomodoroWorkBtn">Work (25m)</button>
-          <button class="btn btn-secondary" id="pomodoroShortBreakBtn">Short Break (5m)</button>
-          <button class="btn btn-secondary" id="pomodoroLongBreakBtn">Long Break (15m)</button>
-        </div>
-        <button class="btn-icon" id="pomodoroSettingsBtn">
-          <span>⚙️</span>
-          <span>Pomodoro Settings</span>
+          <span>Manage Allowed Sites & Custom Duration</span>
         </button>
       </div>
     </div>
@@ -541,51 +523,37 @@
     </div>
   </div>
 
-  <!-- Whitelist Modal -->
+  <!-- Focus Session Settings Modal -->
   <div class="modal" id="whitelistModal">
     <div class="modal-content">
       <div class="modal-header">
-        <div class="modal-title">Allowed Sites During Focus</div>
+        <div class="modal-title">Focus Session Settings</div>
         <button class="close-btn" id="closeWhitelistModal">×</button>
       </div>
       <div class="modal-body">
+        <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Custom Duration</h3>
+        <div class="input-group">
+          <label>Minutes</label>
+          <input type="number" id="customDuration" class="input-field" placeholder="30" min="1" max="180" value="30">
+          <div class="help-text">Enter duration in minutes (1-180)</div>
+        </div>
+        <button class="btn btn-primary btn-full" id="startCustomFocus">Start Custom Focus Session</button>
+
+        <hr style="margin: 24px 0; border: none; border-top: 1px solid #e5e7eb;">
+
+        <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 12px;">Allowed Sites During Focus</h3>
         <div class="input-group">
           <label>Add Website</label>
           <input type="text" id="whitelistInput" class="input-field" placeholder="github.com">
           <div class="help-text">Enter domain name only (e.g., github.com)</div>
         </div>
-        <button class="btn btn-primary btn-full" id="addWhitelistSite">+ Add Site</button>
+        <button class="btn btn-secondary btn-full" id="addWhitelistSite">+ Add Site</button>
         <div style="margin-top: 16px;">
           <label style="font-size: 12px; font-weight: 500; color: #495057; margin-bottom: 8px; display: block;">
             Allowed Sites:
           </label>
           <div id="whitelistSites"></div>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Pomodoro Settings Modal -->
-  <div class="modal" id="pomodoroSettingsModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <div class="modal-title">Pomodoro Settings</div>
-        <button class="close-btn" id="closePomodoroSettingsModal">×</button>
-      </div>
-      <div class="modal-body">
-        <div class="input-group">
-          <label>Work Duration (minutes)</label>
-          <input type="number" id="pomodoroWorkDuration" class="input-field" value="25" min="1" max="60">
-        </div>
-        <div class="input-group">
-          <label>Short Break (minutes)</label>
-          <input type="number" id="pomodoroShortBreakDuration" class="input-field" value="5" min="1" max="30">
-        </div>
-        <div class="input-group">
-          <label>Long Break (minutes)</label>
-          <input type="number" id="pomodoroLongBreakDuration" class="input-field" value="15" min="1" max="60">
-        </div>
-        <button class="btn btn-primary btn-full" id="savePomodoroSettings">Save Settings</button>
       </div>
     </div>
   </div>
