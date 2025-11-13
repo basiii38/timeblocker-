@@ -249,48 +249,26 @@
       font-size: 12px;
     }
 
-    .focus-active, .break-active {
+    .focus-active {
       border-radius: 10px;
       padding: 14px;
       margin-bottom: 10px;
       text-align: center;
-    }
-
-    .focus-active {
       background: linear-gradient(135deg, #d3f9d8 0%, #b2f2bb 100%);
       border: 2px solid #51cf66;
     }
 
-    .break-active {
-      background: linear-gradient(135deg, #fff3bf 0%, #ffe066 100%);
-      border: 2px solid #ffd43b;
-    }
-
-    .focus-text, .break-text {
+    .focus-text {
       font-weight: 600;
       margin-bottom: 6px;
       font-size: 13px;
-    }
-
-    .focus-text {
       color: #2b8a3e;
     }
 
-    .break-text {
-      color: #e67700;
-    }
-
-    .focus-time, .break-time {
+    .focus-time {
       font-size: 28px;
       font-weight: 700;
-    }
-
-    .focus-time {
       color: #2f9e44;
-    }
-
-    .break-time {
-      color: #f59f00;
     }
 
     .action-buttons {
@@ -522,25 +500,6 @@
           <span>⚙️</span>
           <span>Manage Allowed Sites</span>
         </button>
-      </div>
-    </div>
-
-    <!-- Break Timer -->
-    <div class="section">
-      <div id="breakActive" style="display:none;">
-        <div class="break-active">
-          <div class="break-text">☕ Break Time</div>
-          <div class="break-time" id="breakTime">--</div>
-        </div>
-        <button class="btn btn-secondary btn-full" id="endBreakBtn">End Break</button>
-      </div>
-
-      <div id="breakStart">
-        <div class="section-title">☕ Take a Break</div>
-        <div class="focus-buttons">
-          <button class="btn btn-secondary" data-break="5">5 min</button>
-          <button class="btn btn-secondary" data-break="15">15 min</button>
-        </div>
       </div>
     </div>
 

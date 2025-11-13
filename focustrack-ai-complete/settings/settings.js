@@ -52,11 +52,17 @@ async function loadSettings() {
     const dailySummary = await getSetting('dailySummary', false);
     const nuclearMode = await getSetting('nuclearMode', false);
 
+    // Load eye break settings
+    const eyeBreakEnabled = await getSetting('eyeBreakEnabled', false);
+    const eyeBreakInterval = await getSetting('eyeBreakInterval', 20);
+
     document.getElementById('idleTimeout').value = idleTimeout;
     document.getElementById('darkMode').checked = darkMode;
     document.getElementById('enableNotifications').checked = enableNotifications;
     document.getElementById('dailySummary').checked = dailySummary;
     document.getElementById('nuclearMode').checked = nuclearMode;
+    document.getElementById('eyeBreakEnabled').checked = eyeBreakEnabled;
+    document.getElementById('eyeBreakInterval').value = eyeBreakInterval;
 
     // Apply dark mode on page load
     applyDarkMode(darkMode);
@@ -135,6 +141,32 @@ function initGeneralSettings() {
     await saveSetting('dailySummary', e.target.checked);
     showToast('Daily summary ' + (e.target.checked ? 'enabled' : 'disabled'));
   });
+
+  document.getElementById('eyeBreakEnabled').addEventListener('change', async (e) => {
+    await saveSetting('eyeBreakEnabled', e.target.checked);
+    // Notify service worker to start/stop eye break timer
+    await chrome.runtime.sendMessage({
+      action: 'updateEyeBreak',
+      enabled: e.target.checked,
+      interval: parseInt(document.getElementById('eyeBreakInterval').value)
+    });
+    showToast('Eye break reminder ' + (e.target.checked ? 'enabled' : 'disabled'));
+  });
+
+  document.getElementById('eyeBreakInterval').addEventListener('change', async (e) => {
+    const interval = parseInt(e.target.value);
+    await saveSetting('eyeBreakInterval', interval);
+    const enabled = document.getElementById('eyeBreakEnabled').checked;
+    if (enabled) {
+      // Update the timer
+      await chrome.runtime.sendMessage({
+        action: 'updateEyeBreak',
+        enabled: enabled,
+        interval: interval
+      });
+    }
+    showToast('Eye break interval updated to ' + interval + ' minutes');
+  });
 }
 
 // Website Blocking
@@ -154,6 +186,21 @@ function initBlocking() {
   });
 
   document.getElementById('addBlockBtn').addEventListener('click', addBlockedSite);
+
+  // Event delegation for blocked site actions
+  document.getElementById('blockedSitesList').addEventListener('click', (e) => {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+
+    const domain = target.getAttribute('data-domain');
+    const action = target.getAttribute('data-action');
+
+    if (action === 'toggle-block') {
+      toggleBlockedSite(domain);
+    } else if (action === 'delete-block') {
+      removeBlockedSite(domain);
+    }
+  });
 }
 
 async function addBlockedSite() {
@@ -240,10 +287,11 @@ function renderBlockedSites() {
         </div>
         <div class="list-item-actions">
           <button class="btn-small btn-toggle ${site.enabled ? '' : 'disabled'}"
-                  onclick="toggleBlockedSite('${site.domain}')">
+                  data-domain="${site.domain}" data-action="toggle-block">
             ${site.enabled ? 'Enabled' : 'Disabled'}
           </button>
-          <button class="btn-small btn-delete" onclick="removeBlockedSite('${site.domain}')">
+          <button class="btn-small btn-delete"
+                  data-domain="${site.domain}" data-action="delete-block">
             Delete
           </button>
         </div>
@@ -297,6 +345,21 @@ function initGoals() {
   });
 
   document.getElementById('addGoalBtn').addEventListener('click', addGoal);
+
+  // Event delegation for goal actions
+  document.getElementById('goalsList').addEventListener('click', (e) => {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+
+    const goalId = parseInt(target.getAttribute('data-goal-id'));
+    const action = target.getAttribute('data-action');
+
+    if (action === 'toggle-goal') {
+      toggleGoal(goalId);
+    } else if (action === 'delete-goal') {
+      deleteGoal(goalId);
+    }
+  });
 }
 
 async function addGoal() {
@@ -384,10 +447,11 @@ function renderGoals() {
         </div>
         <div class="list-item-actions">
           <button class="btn-small btn-toggle ${goal.enabled ? '' : 'disabled'}"
-                  onclick="toggleGoal(${goal.id})">
+                  data-goal-id="${goal.id}" data-action="toggle-goal">
             ${goal.enabled ? 'Active' : 'Paused'}
           </button>
-          <button class="btn-small btn-delete" onclick="deleteGoal(${goal.id})">
+          <button class="btn-small btn-delete"
+                  data-goal-id="${goal.id}" data-action="delete-goal">
             Delete
           </button>
         </div>
@@ -430,6 +494,19 @@ async function deleteGoal(goalId) {
 // Categories
 function initCategories() {
   document.getElementById('addCategoryBtn').addEventListener('click', addCategory);
+
+  // Event delegation for category actions
+  document.getElementById('customCategoriesList').addEventListener('click', (e) => {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+
+    const domain = target.getAttribute('data-domain');
+    const action = target.getAttribute('data-action');
+
+    if (action === 'delete-category') {
+      removeCategory(domain);
+    }
+  });
 }
 
 async function addCategory() {
@@ -475,7 +552,8 @@ function renderCustomCategories() {
         <span class="category-badge ${category}">${category}</span>
       </div>
       <div class="list-item-actions">
-        <button class="btn-small btn-delete" onclick="removeCategory('${domain}')">
+        <button class="btn-small btn-delete"
+                data-domain="${domain}" data-action="delete-category">
           Delete
         </button>
       </div>
@@ -658,13 +736,6 @@ document.getElementById('backBtn').addEventListener('click', () => {
     window.close();
   }
 });
-
-// Make functions global for onclick handlers
-window.toggleBlockedSite = toggleBlockedSite;
-window.removeBlockedSite = removeBlockedSite;
-window.toggleGoal = toggleGoal;
-window.deleteGoal = deleteGoal;
-window.removeCategory = removeCategory;
 
 // Initialize everything
 document.addEventListener('DOMContentLoaded', () => {

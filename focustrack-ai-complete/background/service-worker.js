@@ -675,7 +675,26 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   else if (alarm.name === 'checkGoals') checkGoals();
   else if (alarm.name === 'focusSessionEnd') endFocusSession(true);
   else if (alarm.name === 'breakTimerEnd') endBreakTimer();
+  else if (alarm.name === 'eyeBreak') showEyeBreakReminder();
 });
+
+async function setupEyeBreakAlarm(enabled, interval) {
+  if (enabled) {
+    chrome.alarms.create('eyeBreak', { periodInMinutes: interval });
+  } else {
+    chrome.alarms.clear('eyeBreak');
+  }
+}
+
+function showEyeBreakReminder() {
+  // Open eye break reminder in a new maximized window
+  chrome.windows.create({
+    url: chrome.runtime.getURL('eye-break.html'),
+    type: 'popup',
+    state: 'fullscreen',
+    focused: true
+  });
+}
 
 async function startFocusSession(duration, allowedSites = []) {
   const now = Date.now();
@@ -752,6 +771,9 @@ async function handleMessage(message) {
       return { success: true, blocked: isBlocked };
     case 'exportData': return { success: true, data: await exportAllData() };
     case 'importData': return await importAllData(message.data);
+    case 'updateEyeBreak':
+      await setupEyeBreakAlarm(message.enabled, message.interval);
+      return { success: true };
     case 'getFocusSessions': return { success: true, data: await dbOp('focusSessions', 'readonly', store => store.getAll()) };
     default: return { success: false, error: 'Unknown action' };
   }
@@ -814,6 +836,10 @@ async function init() {
     customCategories = await getSetting('customCategories', {});
     await loadBlockedSites();
     await loadGoals();
+    // Setup eye break alarm if enabled
+    const eyeBreakEnabled = await getSetting('eyeBreakEnabled', false);
+    const eyeBreakInterval = await getSetting('eyeBreakInterval', 20);
+    await setupEyeBreakAlarm(eyeBreakEnabled, eyeBreakInterval);
     console.log('FocusTrack AI Complete initialized successfully');
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => { if (tabs.length > 0) startTracking(tabs[0]); });
   } catch (error) { console.error('Init error:', error); }

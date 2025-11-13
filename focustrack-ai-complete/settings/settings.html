@@ -71,6 +71,27 @@
             <span class="toggle-slider"></span>
           </label>
         </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label>Eye Break Reminder</label>
+            <p class="setting-description">Remind you to look away every few minutes (20-20-20 rule)</p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <label class="toggle">
+              <input type="checkbox" id="eyeBreakEnabled">
+              <span class="toggle-slider"></span>
+            </label>
+            <select id="eyeBreakInterval" class="input-field" style="width: 140px;">
+              <option value="10">Every 10 min</option>
+              <option value="15">Every 15 min</option>
+              <option value="20" selected>Every 20 min</option>
+              <option value="30">Every 30 min</option>
+              <option value="45">Every 45 min</option>
+              <option value="60">Every 60 min</option>
+            </select>
+          </div>
+        </div>
       </section>
     </div>
 

@@ -709,3 +709,26 @@ body.dark-mode .toast.error {
   color: #fca5a5;
   border-color: #dc2626;
 }
+
+body.dark-mode .btn-toggle {
+  background: #334155;
+  color: #a78bfa;
+}
+
+body.dark-mode .btn-toggle:hover {
+  background: #475569;
+}
+
+body.dark-mode .btn-toggle.disabled {
+  background: #1e293b;
+  color: #64748b;
+}
+
+body.dark-mode .btn-delete {
+  background: #7f1d1d;
+  color: #fca5a5;
+}
+
+body.dark-mode .btn-delete:hover {
+  background: #991b1b;
+}

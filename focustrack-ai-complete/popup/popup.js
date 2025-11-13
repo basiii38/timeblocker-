@@ -2,7 +2,6 @@
 console.log('Popup loaded');
 
 let focusSession = null;
-let breakTimer = null;
 let allowedSites = [];
 let currentDomain = null;
 
@@ -42,12 +41,6 @@ async function loadData() {
       updateFocusUI();
     }
 
-    // Get break timer
-    const breakResponse = await chrome.runtime.sendMessage({ action: 'getBreakTimer' });
-    if (breakResponse && breakResponse.success) {
-      breakTimer = breakResponse.data;
-      updateBreakUI();
-    }
   } catch (error) {
     console.error('Load error:', error);
     showError();
@@ -148,18 +141,6 @@ function updateFocusUI() {
   }
 }
 
-function updateBreakUI() {
-  if (breakTimer) {
-    document.getElementById('breakStart').style.display = 'none';
-    document.getElementById('breakActive').style.display = 'block';
-
-    const remaining = breakTimer.endTime - Date.now();
-    document.getElementById('breakTime').textContent = formatCountdown(remaining);
-  } else {
-    document.getElementById('breakStart').style.display = 'block';
-    document.getElementById('breakActive').style.display = 'none';
-  }
-}
 
 function showError() {
   document.getElementById('score').textContent = 'Error';
@@ -352,33 +333,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Break timer buttons
-  const breakButtons = document.querySelectorAll('[data-break]');
-  breakButtons.forEach(button => {
-    button.addEventListener('click', async () => {
-      const minutes = parseInt(button.getAttribute('data-break'));
-      console.log('Starting break timer:', minutes);
-      try {
-        const response = await chrome.runtime.sendMessage({
-          action: 'startBreakTimer',
-          minutes: minutes
-        });
-        if (response.success) {
-          breakTimer = response.data;
-          updateBreakUI();
-        }
-      } catch (error) {
-        console.error('Break start error:', error);
-      }
-    });
-  });
-
-  // End break button
-  document.getElementById('endBreakBtn').addEventListener('click', async () => {
-    console.log('Ending break timer');
-    breakTimer = null;
-    updateBreakUI();
-  });
 
   // Whitelist modal
   document.getElementById('manageWhitelistBtn').addEventListener('click', () => {
@@ -441,6 +395,5 @@ document.addEventListener('DOMContentLoaded', () => {
   // Update countdown timers every second for smooth display
   setInterval(() => {
     if (focusSession) updateFocusUI();
-    if (breakTimer) updateBreakUI();
   }, 1000);
 });
