@@ -527,9 +527,16 @@ async function addCategory() {
       value: customCategories
     });
 
+    // Update all historical entries for this domain
+    await chrome.runtime.sendMessage({
+      action: 'updateDomainCategory',
+      domain: domain,
+      category: category
+    });
+
     renderCustomCategories();
     document.getElementById('categoryDomain').value = '';
-    showToast('Category added');
+    showToast('Category added and historical data updated');
   } catch (error) {
     console.error('Add category error:', error);
     showToast('Error adding category', 'error');
@@ -571,8 +578,16 @@ async function removeCategory(domain) {
       value: customCategories
     });
 
+    // Update historical entries to revert to default category
+    // Send 'default' as the category to trigger default lookup
+    await chrome.runtime.sendMessage({
+      action: 'updateDomainCategory',
+      domain: domain,
+      category: 'default'
+    });
+
     renderCustomCategories();
-    showToast('Category removed');
+    showToast('Category removed and historical data updated');
   } catch (error) {
     console.error('Remove category error:', error);
     showToast('Error removing category', 'error');

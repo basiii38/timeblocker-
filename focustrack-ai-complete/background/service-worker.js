@@ -508,6 +508,32 @@ async function getDateRangeEntries(startDate, endDate) {
   });
 }
 
+async function updateDomainCategory(domain, newCategory) {
+  return new Promise((resolve, reject) => {
+    if (!db) return reject('DB not initialized');
+    const transaction = db.transaction(['timeEntries'], 'readwrite');
+    const store = transaction.objectStore('timeEntries');
+    const request = store.openCursor();
+
+    let updated = 0;
+    request.onsuccess = (event) => {
+      const cursor = event.target.result;
+      if (cursor) {
+        const entry = cursor.value;
+        if (entry.domain === domain) {
+          entry.category = newCategory;
+          cursor.update(entry);
+          updated++;
+        }
+        cursor.continue();
+      }
+    };
+
+    transaction.oncomplete = () => resolve(updated);
+    transaction.onerror = () => reject(transaction.error);
+  });
+}
+
 async function saveSetting(key, value) {
   return dbOp('settings', 'readwrite', store => store.put({ key, value }));
 }
@@ -667,7 +693,22 @@ chrome.webNavigation.onBeforeNavigate.addListener((details) => {
   }
 });
 
-chrome.alarms.create('saveTracking', { periodInMinutes: 0.5 });
+// Save tracking when tab is closed
+chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
+  saveCurrentSession();
+});
+
+// Save tracking when window is closed
+chrome.windows.onRemoved.addListener((windowId) => {
+  saveCurrentSession();
+});
+
+// Save tracking before extension suspends (browser close)
+chrome.runtime.onSuspend.addListener(() => {
+  saveCurrentSession();
+});
+
+chrome.alarms.create('saveTracking', { periodInMinutes: 0.17 });
 chrome.alarms.create('checkGoals', { periodInMinutes: 5 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
@@ -687,11 +728,11 @@ async function setupEyeBreakAlarm(enabled, interval) {
 }
 
 function showEyeBreakReminder() {
-  // Open eye break reminder in a new maximized window
+  // Create a maximized window that covers the screen
   chrome.windows.create({
     url: chrome.runtime.getURL('eye-break.html'),
     type: 'popup',
-    state: 'fullscreen',
+    state: 'maximized',
     focused: true
   });
 }
@@ -761,10 +802,23 @@ async function handleMessage(message) {
     case 'refreshCurrentTab':
       await saveCurrentSession();
       if (currentTab) {
-        currentTab.category = getCategoryForUrl(currentTab.url);
+        const newCategory = getCategoryForUrl(currentTab.url);
+        const domain = currentTab.domain;
+        // Update current tab category
+        currentTab.category = newCategory;
         currentSessionStart = Date.now();
+        // Update all historical entries for this domain
+        await updateDomainCategory(domain, newCategory);
       }
       return { success: true };
+    case 'updateDomainCategory':
+      let categoryToUse = message.category;
+      // If category is 'default', look up the default category for this domain
+      if (categoryToUse === 'default') {
+        categoryToUse = DEFAULT_CATEGORIES[message.domain] || CATEGORIES.UNCATEGORIZED;
+      }
+      const updatedCount = await updateDomainCategory(message.domain, categoryToUse);
+      return { success: true, updatedCount };
     case 'checkIfBlocked':
       const domain = getDomain(message.url);
       const isBlocked = shouldBlockSite(domain);
