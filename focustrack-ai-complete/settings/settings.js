@@ -15,6 +15,15 @@ function showToast(message, type = 'success') {
   }, 3000);
 }
 
+// Dark mode functionality
+function applyDarkMode(enabled) {
+  if (enabled) {
+    document.body.classList.add('dark-mode');
+  } else {
+    document.body.classList.remove('dark-mode');
+  }
+}
+
 // Tab switching
 function initTabs() {
   const tabBtns = document.querySelectorAll('.tab-btn');
@@ -48,6 +57,9 @@ async function loadSettings() {
     document.getElementById('enableNotifications').checked = enableNotifications;
     document.getElementById('dailySummary').checked = dailySummary;
     document.getElementById('nuclearMode').checked = nuclearMode;
+
+    // Apply dark mode on page load
+    applyDarkMode(darkMode);
 
     // Load blocked sites
     const blockedResponse = await chrome.runtime.sendMessage({ action: 'getBlockedSites' });
@@ -110,6 +122,7 @@ function initGeneralSettings() {
 
   document.getElementById('darkMode').addEventListener('change', async (e) => {
     await saveSetting('darkMode', e.target.checked);
+    applyDarkMode(e.target.checked);
     showToast('Dark mode ' + (e.target.checked ? 'enabled' : 'disabled'));
   });
 
@@ -557,14 +570,36 @@ async function importData() {
   const file = document.getElementById('importFile').files[0];
   if (!file) return;
 
+  if (!confirm('⚠️ This will import data and merge it with your existing data. Continue?')) {
+    return;
+  }
+
   const reader = new FileReader();
   reader.onload = async (e) => {
     try {
       const data = JSON.parse(e.target.result);
 
-      // Import would require more complex logic to merge with existing data
-      // For now, just show a message
-      showToast('Import functionality coming soon!', 'error');
+      // Validate the data format
+      if (!data.exportDate) {
+        showToast('Invalid export file format', 'error');
+        return;
+      }
+
+      // Send import request to service worker
+      const response = await chrome.runtime.sendMessage({
+        action: 'importData',
+        data: data
+      });
+
+      if (response.success) {
+        showToast('Data imported successfully!');
+        // Reload settings to show imported data
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        showToast('Error importing data: ' + response.error, 'error');
+      }
 
     } catch (error) {
       console.error('Import error:', error);

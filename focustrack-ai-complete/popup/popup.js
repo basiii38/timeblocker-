@@ -127,13 +127,21 @@ function updateCurrentSite(data) {
   }
 }
 
+function formatCountdown(milliseconds) {
+  if (milliseconds <= 0) return '0:00';
+  const totalSeconds = Math.floor(milliseconds / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
 function updateFocusUI() {
   if (focusSession) {
     document.getElementById('focusStart').style.display = 'none';
     document.getElementById('focusActive').style.display = 'block';
 
-    const remaining = Math.floor((focusSession.endTime - Date.now()) / 60000);
-    document.getElementById('focusTime').textContent = remaining + ' min left';
+    const remaining = focusSession.endTime - Date.now();
+    document.getElementById('focusTime').textContent = formatCountdown(remaining);
   } else {
     document.getElementById('focusStart').style.display = 'block';
     document.getElementById('focusActive').style.display = 'none';
@@ -145,8 +153,8 @@ function updateBreakUI() {
     document.getElementById('breakStart').style.display = 'none';
     document.getElementById('breakActive').style.display = 'block';
 
-    const remaining = Math.floor((breakTimer.endTime - Date.now()) / 60000);
-    document.getElementById('breakTime').textContent = remaining + ' min left';
+    const remaining = breakTimer.endTime - Date.now();
+    document.getElementById('breakTime').textContent = formatCountdown(remaining);
   } else {
     document.getElementById('breakStart').style.display = 'block';
     document.getElementById('breakActive').style.display = 'none';
@@ -181,7 +189,7 @@ function renderWhitelist() {
     container.innerHTML = allowedSites.map(site => `
       <div class="site-chip">
         <span>${site}</span>
-        <button onclick="removeFromWhitelist('${site}')">×</button>
+        <button class="remove-whitelist-btn" data-site="${site}">×</button>
       </div>
     `).join('');
   }
@@ -201,10 +209,10 @@ function addToWhitelist() {
   input.value = '';
 }
 
-window.removeFromWhitelist = function(site) {
+function removeFromWhitelist(site) {
   allowedSites = allowedSites.filter(s => s !== site);
   saveWhitelist();
-};
+}
 
 // Start focus session function
 async function startFocusSession(duration) {
@@ -246,6 +254,11 @@ async function changeCategory(newCategory) {
       action: 'saveSetting',
       key: 'customCategories',
       value: customCategories
+    });
+
+    // Refresh the current tracking session to update category
+    await chrome.runtime.sendMessage({
+      action: 'refreshCurrentTab'
     });
 
     // Update UI
@@ -307,13 +320,36 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Open dashboard button (with smart tab reuse)
-  document.getElementById('openDashboardBtn').addEventListener('click', () => {
-    openInTab(chrome.runtime.getURL('dashboard/dashboard.html'));
+  document.getElementById('openDashboardBtn').addEventListener('click', async () => {
+    const url = chrome.runtime.getURL('dashboard/dashboard.html');
+    const tabs = await chrome.tabs.query({});
+    const existingTab = tabs.find(tab => tab.url && tab.url.startsWith(url));
+
+    if (existingTab) {
+      // Focus existing tab
+      await chrome.tabs.update(existingTab.id, { active: true });
+      await chrome.windows.update(existingTab.windowId, { focused: true });
+    } else {
+      // Open new tab
+      chrome.tabs.create({ url: url });
+    }
   });
 
   // Open settings button (with smart tab reuse)
-  document.getElementById('openSettingsBtn').addEventListener('click', () => {
-    openInTab(chrome.runtime.getURL('settings/settings.html'));
+  document.getElementById('openSettingsBtn').addEventListener('click', async () => {
+    const url = chrome.runtime.getURL('settings/settings.html') + '?from=popup';
+    const tabs = await chrome.tabs.query({});
+    const settingsUrl = chrome.runtime.getURL('settings/settings.html');
+    const existingTab = tabs.find(tab => tab.url && tab.url.startsWith(settingsUrl));
+
+    if (existingTab) {
+      // Focus existing tab and update URL with query param
+      await chrome.tabs.update(existingTab.id, { active: true, url: url });
+      await chrome.windows.update(existingTab.windowId, { focused: true });
+    } else {
+      // Open new tab
+      chrome.tabs.create({ url: url });
+    }
   });
 
   // Break timer buttons
@@ -359,6 +395,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Enter') addToWhitelist();
   });
 
+  // Event delegation for removing whitelist sites
+  document.getElementById('whitelistSites').addEventListener('click', (e) => {
+    if (e.target.classList.contains('remove-whitelist-btn')) {
+      const site = e.target.getAttribute('data-site');
+      removeFromWhitelist(site);
+    }
+  });
+
   // Category modal
   document.getElementById('changeCategoryBtn').addEventListener('click', () => {
     if (!currentDomain) return;
@@ -391,6 +435,12 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('Initializing popup...');
   loadData();
 
-  // Refresh every 5 seconds
+  // Refresh data every 5 seconds
   setInterval(loadData, 5000);
+
+  // Update countdown timers every second for smooth display
+  setInterval(() => {
+    if (focusSession) updateFocusUI();
+    if (breakTimer) updateBreakUI();
+  }, 1000);
 });

@@ -96,17 +96,61 @@
       "The way to get started is to quit talking and begin doing. - Walt Disney"
     ];
 
-    // Get domain from URL params
+    // Get domain and original URL from params
     const params = new URLSearchParams(window.location.search);
     const domain = params.get('domain') || 'this site';
+    const originalUrl = params.get('url');
     document.getElementById('domain').textContent = domain;
 
     // Set random quote
     document.getElementById('quote').textContent = quotes[Math.floor(Math.random() * quotes.length)];
 
+    // Store the blocked URL for potential future access
+    if (originalUrl) {
+      sessionStorage.setItem('blockedUrl', originalUrl);
+    }
+
     // Attach event listener properly
-    document.getElementById('goBackBtn').addEventListener('click', () => {
-      window.history.back();
+    document.getElementById('goBackBtn').addEventListener('click', async () => {
+      // Try to go back in history
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        // If no history, open a new tab or close current
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tabs.length > 0) {
+          // Check if there are other tabs open
+          const allTabs = await chrome.tabs.query({ currentWindow: true });
+          if (allTabs.length > 1) {
+            // Close this tab
+            chrome.tabs.remove(tabs[0].id);
+          } else {
+            // Navigate to new tab page or a safe default
+            chrome.tabs.update(tabs[0].id, { url: 'chrome://newtab' });
+          }
+        }
+      }
+    });
+
+    // Check if user disabled the block and wants to access the original page
+    // This happens when user reloads after disabling block
+    window.addEventListener('load', async () => {
+      if (originalUrl) {
+        try {
+          // Check if site is still blocked
+          const response = await chrome.runtime.sendMessage({
+            action: 'checkIfBlocked',
+            url: originalUrl
+          });
+
+          // If not blocked anymore, redirect to original URL
+          if (response && !response.blocked) {
+            window.location.href = originalUrl;
+          }
+        } catch (error) {
+          console.log('Could not check block status:', error);
+        }
+      }
     });
   </script>
 </body>
