@@ -70,6 +70,14 @@ async function loadAdditionalStats() {
     const goalsResponse = await chrome.runtime.sendMessage({ action: 'getGoals' });
     const goals = goalsResponse.success ? goalsResponse.data || [] : [];
 
+    // Get streaks
+    const streakResponse = await chrome.runtime.sendMessage({ action: 'getStreak' });
+    const streakData = streakResponse.success ? streakResponse.data : { current: 0, longest: 0 };
+
+    // Get achievements
+    const achievementsResponse = await chrome.runtime.sendMessage({ action: 'getAchievements' });
+    const achievements = achievementsResponse.success ? achievementsResponse.data || [] : [];
+
     // Filter by date range
     const now = Date.now();
     let startDate = new Date();
@@ -106,9 +114,45 @@ async function loadAdditionalStats() {
       document.getElementById('avgSessionTime').textContent = '--';
     }
 
+    // Update streak display
+    document.getElementById('currentStreak').textContent = streakData.current || 0;
+    document.getElementById('longestStreak').textContent = streakData.longest || 0;
+
+    // Update achievements
+    const unlockedAchievements = achievements.filter(a => a.unlocked);
+    document.getElementById('achievementsCount').textContent = `${unlockedAchievements.length}/${achievements.length}`;
+
+    // Show recent achievements
+    updateAchievementsDisplay(achievements);
+
   } catch (error) {
     console.error('Error loading additional stats:', error);
   }
+}
+
+function updateAchievementsDisplay(achievements) {
+  const container = document.getElementById('achievementsList');
+  if (!container) return;
+
+  const recentUnlocked = achievements
+    .filter(a => a.unlocked)
+    .sort((a, b) => (b.unlockedAt || 0) - (a.unlockedAt || 0))
+    .slice(0, 3);
+
+  if (recentUnlocked.length === 0) {
+    container.innerHTML = '<div style="text-align: center; color: #9ca3af; padding: 20px;">No achievements yet. Keep working!</div>';
+    return;
+  }
+
+  container.innerHTML = recentUnlocked.map(achievement => `
+    <div class="achievement-badge">
+      <div class="achievement-icon">${achievement.icon}</div>
+      <div class="achievement-info">
+        <div class="achievement-name">${achievement.name}</div>
+        <div class="achievement-desc">${achievement.description}</div>
+      </div>
+    </div>
+  `).join('');
 }
 
 function processData(entries) {

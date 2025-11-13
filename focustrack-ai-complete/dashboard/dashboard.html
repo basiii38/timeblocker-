@@ -165,6 +165,46 @@
       transform: translateY(-1px);
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
+
+    .achievement-badge {
+      background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      min-width: 250px;
+      border: 2px solid #e5e7eb;
+      transition: all 0.2s;
+    }
+
+    .achievement-badge:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .achievement-icon {
+      font-size: 36px;
+      min-width: 50px;
+      text-align: center;
+    }
+
+    .achievement-info {
+      flex: 1;
+    }
+
+    .achievement-name {
+      font-weight: 600;
+      font-size: 14px;
+      color: #1f2937;
+      margin-bottom: 4px;
+    }
+
+    .achievement-desc {
+      font-size: 12px;
+      color: #6b7280;
+    }
   </style>
 </head>
 <body>
@@ -224,6 +264,22 @@
         <div class="stat-value" style="color: white;" id="avgSessionTime">--</div>
         <div class="stat-details" style="opacity: 0.9; font-size: 12px;">Focus duration</div>
       </div>
+      <div class="stat-card" style="background: linear-gradient(135deg, #ff8c00 0%, #ff6347 100%); color: white;">
+        <div class="stat-label" style="color: rgba(255,255,255,0.9);">🔥 Current Streak</div>
+        <div class="stat-value" style="color: white;"><span id="currentStreak">0</span> days</div>
+        <div class="stat-details" style="opacity: 0.9; font-size: 12px;">Longest: <span id="longestStreak">0</span> days</div>
+      </div>
+      <div class="stat-card" style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); color: white;">
+        <div class="stat-label" style="color: rgba(255,255,255,0.9);">🏆 Achievements</div>
+        <div class="stat-value" style="color: white; font-size: 28px;" id="achievementsCount">0/0</div>
+        <div class="stat-details" style="opacity: 0.9; font-size: 12px;">Unlocked badges</div>
+      </div>
+    </div>
+
+    <!-- Achievements Section -->
+    <div class="chart-card" style="margin-bottom: 32px;">
+      <h2>🏆 Recent Achievements</h2>
+      <div id="achievementsList" style="display: flex; gap: 16px; flex-wrap: wrap;"></div>
     </div>
 
     <!-- Charts Section -->

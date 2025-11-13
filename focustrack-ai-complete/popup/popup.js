@@ -385,6 +385,103 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  // Pomodoro Timer
+  let pomodoroState = null;
+  let pomodoroSettings = { work: 25, shortBreak: 5, longBreak: 15 };
+
+  async function loadPomodoroSettings() {
+    const response = await chrome.runtime.sendMessage({ action: 'getPomodoroSettings' });
+    if (response.success) {
+      pomodoroSettings = response.data;
+      document.getElementById('pomodoroWorkDuration').value = pomodoroSettings.work;
+      document.getElementById('pomodoroShortBreakDuration').value = pomodoroSettings.shortBreak;
+      document.getElementById('pomodoroLongBreakDuration').value = pomodoroSettings.longBreak;
+
+      // Update button labels
+      document.getElementById('pomodoroWorkBtn').textContent = `Work (${pomodoroSettings.work}m)`;
+      document.getElementById('pomodoroShortBreakBtn').textContent = `Short Break (${pomodoroSettings.shortBreak}m)`;
+      document.getElementById('pomodoroLongBreakBtn').textContent = `Long Break (${pomodoroSettings.longBreak}m)`;
+    }
+  }
+
+  async function updatePomodoroUI() {
+    const response = await chrome.runtime.sendMessage({ action: 'getPomodoroState' });
+    if (response.success && response.data) {
+      pomodoroState = response.data;
+      document.getElementById('pomodoroStart').style.display = 'none';
+      document.getElementById('pomodoroActive').style.display = 'block';
+      const remaining = pomodoroState.endTime - Date.now();
+      document.getElementById('pomodoroTime').textContent = formatCountdown(remaining);
+
+      const typeLabels = { work: 'Work Session', shortBreak: 'Short Break', longBreak: 'Long Break' };
+      document.getElementById('pomodoroType').textContent = typeLabels[pomodoroState.type] || 'Pomodoro';
+    } else {
+      pomodoroState = null;
+      document.getElementById('pomodoroStart').style.display = 'block';
+      document.getElementById('pomodoroActive').style.display = 'none';
+    }
+  }
+
+  async function startPomodoroTimer(type, duration) {
+    const response = await chrome.runtime.sendMessage({
+      action: 'startPomodoro',
+      type,
+      duration
+    });
+    if (response.success) {
+      pomodoroState = response.data;
+      updatePomodoroUI();
+    }
+  }
+
+  document.getElementById('pomodoroWorkBtn').addEventListener('click', () => {
+    startPomodoroTimer('work', pomodoroSettings.work);
+  });
+
+  document.getElementById('pomodoroShortBreakBtn').addEventListener('click', () => {
+    startPomodoroTimer('shortBreak', pomodoroSettings.shortBreak);
+  });
+
+  document.getElementById('pomodoroLongBreakBtn').addEventListener('click', () => {
+    startPomodoroTimer('longBreak', pomodoroSettings.longBreak);
+  });
+
+  document.getElementById('endPomodoroBtn').addEventListener('click', async () => {
+    await chrome.runtime.sendMessage({ action: 'endPomodoro', completed: false });
+    pomodoroState = null;
+    updatePomodoroUI();
+  });
+
+  document.getElementById('pomodoroSettingsBtn').addEventListener('click', () => {
+    document.getElementById('pomodoroSettingsModal').classList.add('show');
+  });
+
+  document.getElementById('closePomodoroSettingsModal').addEventListener('click', () => {
+    document.getElementById('pomodoroSettingsModal').classList.remove('show');
+  });
+
+  document.getElementById('savePomodoroSettings').addEventListener('click', async () => {
+    pomodoroSettings = {
+      work: parseInt(document.getElementById('pomodoroWorkDuration').value),
+      shortBreak: parseInt(document.getElementById('pomodoroShortBreakDuration').value),
+      longBreak: parseInt(document.getElementById('pomodoroLongBreakDuration').value)
+    };
+
+    await chrome.runtime.sendMessage({
+      action: 'savePomodoroSettings',
+      settings: pomodoroSettings
+    });
+
+    // Update button labels
+    document.getElementById('pomodoroWorkBtn').textContent = `Work (${pomodoroSettings.work}m)`;
+    document.getElementById('pomodoroShortBreakBtn').textContent = `Short Break (${pomodoroSettings.shortBreak}m)`;
+    document.getElementById('pomodoroLongBreakBtn').textContent = `Long Break (${pomodoroSettings.longBreak}m)`;
+
+    document.getElementById('pomodoroSettingsModal').classList.remove('show');
+  });
+
+  loadPomodoroSettings();
+
   // Load initial data
   console.log('Initializing popup...');
   loadData();
@@ -395,5 +492,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Update countdown timers every second for smooth display
   setInterval(() => {
     if (focusSession) updateFocusUI();
+    if (pomodoroState) updatePomodoroUI();
   }, 1000);
 });

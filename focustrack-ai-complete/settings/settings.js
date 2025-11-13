@@ -56,6 +56,10 @@ async function loadSettings() {
     const eyeBreakEnabled = await getSetting('eyeBreakEnabled', false);
     const eyeBreakInterval = await getSetting('eyeBreakInterval', 20);
 
+    // Load hydration settings
+    const hydrationEnabled = await getSetting('hydrationEnabled', false);
+    const hydrationInterval = await getSetting('hydrationInterval', 60);
+
     document.getElementById('idleTimeout').value = idleTimeout;
     document.getElementById('darkMode').checked = darkMode;
     document.getElementById('enableNotifications').checked = enableNotifications;
@@ -63,6 +67,8 @@ async function loadSettings() {
     document.getElementById('nuclearMode').checked = nuclearMode;
     document.getElementById('eyeBreakEnabled').checked = eyeBreakEnabled;
     document.getElementById('eyeBreakInterval').value = eyeBreakInterval;
+    document.getElementById('hydrationEnabled').checked = hydrationEnabled;
+    document.getElementById('hydrationInterval').value = hydrationInterval;
 
     // Apply dark mode on page load
     applyDarkMode(darkMode);
@@ -166,6 +172,52 @@ function initGeneralSettings() {
       });
     }
     showToast('Eye break interval updated to ' + interval + ' minutes');
+  });
+
+  // Hydration reminders
+  document.getElementById('hydrationEnabled').addEventListener('change', async (e) => {
+    await saveSetting('hydrationEnabled', e.target.checked);
+    await chrome.runtime.sendMessage({
+      action: 'updateHydration',
+      enabled: e.target.checked,
+      interval: parseInt(document.getElementById('hydrationInterval').value)
+    });
+    showToast('Hydration reminder ' + (e.target.checked ? 'enabled' : 'disabled'));
+  });
+
+  document.getElementById('hydrationInterval').addEventListener('change', async (e) => {
+    const interval = parseInt(e.target.value);
+    await saveSetting('hydrationInterval', interval);
+    const enabled = document.getElementById('hydrationEnabled').checked;
+    if (enabled) {
+      await chrome.runtime.sendMessage({
+        action: 'updateHydration',
+        enabled: enabled,
+        interval: interval
+      });
+    }
+    showToast('Hydration interval updated to ' + interval + ' minutes');
+  });
+
+  // Block Schedules
+  document.getElementById('activateWorkMode').addEventListener('click', async () => {
+    await chrome.runtime.sendMessage({ action: 'activateBlockSchedule', scheduleId: 'work' });
+    showToast('Work Mode activated');
+  });
+
+  document.getElementById('activateStudyMode').addEventListener('click', async () => {
+    await chrome.runtime.sendMessage({ action: 'activateBlockSchedule', scheduleId: 'study' });
+    showToast('Study Mode activated');
+  });
+
+  document.getElementById('activateDeepFocusMode').addEventListener('click', async () => {
+    await chrome.runtime.sendMessage({ action: 'activateBlockSchedule', scheduleId: 'deepfocus' });
+    showToast('Deep Focus Mode activated');
+  });
+
+  document.getElementById('deactivateSchedule').addEventListener('click', async () => {
+    await saveSetting('activeSchedule', null);
+    showToast('Normal Mode - All schedules deactivated');
   });
 }
 

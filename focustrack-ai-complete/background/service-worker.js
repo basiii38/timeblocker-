@@ -447,7 +447,7 @@ let blockedSites = [], goals = [], customCategories = {};
 
 function initDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('FocusTrackDB', 2);
+    const request = indexedDB.open('FocusTrackDB', 3);
     request.onerror = () => reject(request.error);
     request.onsuccess = () => { db = request.result; resolve(db); };
     request.onupgradeneeded = (event) => {
@@ -462,6 +462,17 @@ function initDB() {
       if (!db.objectStoreNames.contains('focusSessions')) {
         const store = db.createObjectStore('focusSessions', { keyPath: 'id', autoIncrement: true });
         store.createIndex('date', 'date');
+      }
+      if (!db.objectStoreNames.contains('achievements')) {
+        db.createObjectStore('achievements', { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains('streaks')) {
+        db.createObjectStore('streaks', { keyPath: 'type' });
+      }
+      if (!db.objectStoreNames.contains('pomodoroSessions')) {
+        const store = db.createObjectStore('pomodoroSessions', { keyPath: 'id', autoIncrement: true });
+        store.createIndex('date', 'date');
+        store.createIndex('timestamp', 'timestamp');
       }
     };
   });
@@ -712,11 +723,17 @@ chrome.alarms.create('saveTracking', { periodInMinutes: 0.17 });
 chrome.alarms.create('checkGoals', { periodInMinutes: 5 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === 'saveTracking') saveCurrentSession();
+  if (alarm.name === 'saveTracking') {
+    saveCurrentSession();
+    updateStreak();
+  }
   else if (alarm.name === 'checkGoals') checkGoals();
   else if (alarm.name === 'focusSessionEnd') endFocusSession(true);
   else if (alarm.name === 'breakTimerEnd') endBreakTimer();
   else if (alarm.name === 'eyeBreak') showEyeBreakReminder();
+  else if (alarm.name === 'pomodoroEnd') endPomodoro(true);
+  else if (alarm.name === 'hydration') showHydrationReminder();
+  else if (alarm.name === 'dailyStreakCheck') updateStreak();
 });
 
 async function setupEyeBreakAlarm(enabled, interval) {
@@ -829,8 +846,231 @@ async function handleMessage(message) {
       await setupEyeBreakAlarm(message.enabled, message.interval);
       return { success: true };
     case 'getFocusSessions': return { success: true, data: await dbOp('focusSessions', 'readonly', store => store.getAll()) };
+    case 'getStreak': return { success: true, data: await getStreak() };
+    case 'getAchievements': return { success: true, data: await getAchievements() };
+    case 'getPomodoroSettings': return { success: true, data: await getSetting('pomodoroSettings', { work: 25, shortBreak: 5, longBreak: 15, cycles: 4 }) };
+    case 'savePomodoroSettings': await saveSetting('pomodoroSettings', message.settings); return { success: true };
+    case 'startPomodoro': return { success: true, data: await startPomodoro(message.type, message.duration) };
+    case 'endPomodoro': await endPomodoro(message.completed); return { success: true };
+    case 'getPomodoroState': return { success: true, data: pomodoroTimer };
+    case 'updateHydration': await setupHydrationAlarm(message.enabled, message.interval); return { success: true };
+    case 'getBlockSchedules': return { success: true, data: await getSetting('blockSchedules', []) };
+    case 'saveBlockSchedules': await saveSetting('blockSchedules', message.schedules); return { success: true };
+    case 'activateBlockSchedule': await activateBlockSchedule(message.scheduleId); return { success: true };
     default: return { success: false, error: 'Unknown action' };
   }
+}
+
+// ========== ACHIEVEMENTS SYSTEM ==========
+const ACHIEVEMENTS = [
+  { id: 'first_hour', name: 'Getting Started', description: 'Track your first hour', icon: '🎯', requirement: data => data.totalTime >= 3600 },
+  { id: 'productive_day', name: 'Productive Day', description: '4+ hours of productive time in a day', icon: '💪', requirement: data => data.productiveTime >= 14400 },
+  { id: 'week_warrior', name: 'Week Warrior', description: '5 productive days in a row', icon: '🔥', requirement: data => data.streak >= 5 },
+  { id: 'focus_master', name: 'Focus Master', description: 'Complete 10 focus sessions', icon: '🧘', requirement: data => data.focusSessions >= 10 },
+  { id: 'distraction_free', name: 'Distraction Free', description: 'Zero distracting time for a day', icon: '🚫', requirement: data => data.distractingTime === 0 && data.totalTime > 0 },
+  { id: 'early_bird', name: 'Early Bird', description: 'Start working before 7 AM', icon: '🌅', requirement: data => data.earlyStart },
+  { id: 'night_owl', name: 'Night Owl', description: 'Work after 10 PM', icon: '🦉', requirement: data => data.lateWork },
+  { id: 'streak_7', name: 'Week Streak', description: '7 day streak', icon: '📅', requirement: data => data.streak >= 7 },
+  { id: 'streak_30', name: 'Month Streak', description: '30 day streak', icon: '📆', requirement: data => data.streak >= 30 },
+  { id: 'pomodoro_10', name: 'Pomodoro Pro', description: 'Complete 10 pomodoro sessions', icon: '🍅', requirement: data => data.pomodoroCount >= 10 },
+  { id: 'hundred_hours', name: 'Century', description: '100 hours tracked', icon: '💯', requirement: data => data.totalTime >= 360000 },
+  { id: 'goal_achiever', name: 'Goal Achiever', description: 'Achieve 5 goals', icon: '🎖️', requirement: data => data.goalsAchieved >= 5 }
+];
+
+async function getAchievements() {
+  const existingAchievements = await dbOp('achievements', 'readonly', store => store.getAll()).catch(() => []);
+  const achievementMap = {};
+  existingAchievements.forEach(a => achievementMap[a.id] = a);
+
+  return ACHIEVEMENTS.map(achievement => ({
+    ...achievement,
+    unlocked: achievementMap[achievement.id]?.unlocked || false,
+    unlockedAt: achievementMap[achievement.id]?.unlockedAt || null
+  }));
+}
+
+async function checkAchievements() {
+  try {
+    const entries = await getTodayEntries();
+    const allEntries = await dbOp('timeEntries', 'readonly', store => store.getAll());
+    const focusSessions = await dbOp('focusSessions', 'readonly', store => store.getAll());
+    const pomodoroSessions = await dbOp('pomodoroSessions', 'readonly', store => store.getAll()).catch(() => []);
+    const streakData = await getStreak();
+
+    let productiveTime = 0, distractingTime = 0, totalTime = 0;
+    entries.forEach(e => {
+      if (e.category === 'productive') productiveTime += e.duration;
+      if (e.category === 'distracting') distractingTime += e.duration;
+      totalTime += e.duration;
+    });
+
+    const allTime = allEntries.reduce((sum, e) => sum + e.duration, 0);
+    const earlyStart = entries.some(e => new Date(e.timestamp).getHours() < 7);
+    const lateWork = entries.some(e => new Date(e.timestamp).getHours() >= 22);
+
+    const data = {
+      totalTime: allTime,
+      productiveTime,
+      distractingTime,
+      streak: streakData.current || 0,
+      focusSessions: focusSessions.filter(s => s.completed).length,
+      pomodoroCount: pomodoroSessions.length,
+      earlyStart,
+      lateWork,
+      goalsAchieved: 0
+    };
+
+    for (const achievement of ACHIEVEMENTS) {
+      const existing = await dbOp('achievements', 'readonly', store => store.get(achievement.id)).catch(() => null);
+      if (!existing && achievement.requirement(data)) {
+        await dbOp('achievements', 'readwrite', store => store.put({
+          id: achievement.id,
+          unlocked: true,
+          unlockedAt: Date.now()
+        }));
+        showNotification('🏆 Achievement Unlocked!', `${achievement.name}: ${achievement.description}`);
+      }
+    }
+  } catch (error) {
+    console.error('Error checking achievements:', error);
+  }
+}
+
+// ========== STREAKS SYSTEM ==========
+async function getStreak() {
+  const streak = await dbOp('streaks', 'readonly', store => store.get('daily')).catch(() => null);
+  if (!streak) {
+    return { type: 'daily', current: 0, longest: 0, lastUpdate: null };
+  }
+  return streak;
+}
+
+async function updateStreak() {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayTime = today.getTime();
+
+    const entries = await getTodayEntries();
+    const productiveTime = entries.filter(e => e.category === 'productive').reduce((sum, e) => sum + e.duration, 0);
+
+    // Consider day productive if > 1 hour productive time
+    const isProductiveDay = productiveTime >= 3600;
+
+    let streak = await getStreak();
+    const lastUpdate = streak.lastUpdate ? new Date(streak.lastUpdate) : null;
+
+    if (lastUpdate) {
+      lastUpdate.setHours(0, 0, 0, 0);
+      const daysSinceUpdate = Math.floor((todayTime - lastUpdate.getTime()) / 86400000);
+
+      if (daysSinceUpdate === 0 && isProductiveDay) {
+        // Same day, already counted
+        return;
+      } else if (daysSinceUpdate === 1 && isProductiveDay) {
+        // Consecutive day
+        streak.current++;
+        if (streak.current > streak.longest) {
+          streak.longest = streak.current;
+        }
+      } else if (daysSinceUpdate > 1) {
+        // Streak broken
+        streak.current = isProductiveDay ? 1 : 0;
+      }
+    } else {
+      // First time
+      streak.current = isProductiveDay ? 1 : 0;
+      streak.longest = streak.current;
+    }
+
+    streak.lastUpdate = isProductiveDay ? todayTime : streak.lastUpdate;
+    await dbOp('streaks', 'readwrite', store => store.put(streak));
+
+    // Check achievements after streak update
+    await checkAchievements();
+  } catch (error) {
+    console.error('Error updating streak:', error);
+  }
+}
+
+// ========== POMODORO TIMER ==========
+let pomodoroTimer = null;
+
+async function startPomodoro(type, duration) {
+  const endTime = Date.now() + (duration * 60 * 1000);
+  pomodoroTimer = {
+    type, // 'work', 'shortBreak', 'longBreak'
+    duration,
+    startTime: Date.now(),
+    endTime,
+    paused: false
+  };
+
+  chrome.alarms.create('pomodoroEnd', { when: endTime });
+  return pomodoroTimer;
+}
+
+async function endPomodoro(completed) {
+  if (!pomodoroTimer) return;
+
+  if (completed && pomodoroTimer.type === 'work') {
+    // Save pomodoro session
+    const date = new Date().toISOString().split('T')[0];
+    await dbOp('pomodoroSessions', 'readwrite', store => store.add({
+      type: pomodoroTimer.type,
+      duration: pomodoroTimer.duration,
+      completed: true,
+      timestamp: pomodoroTimer.startTime,
+      date
+    }));
+
+    showNotification('✅ Pomodoro Complete!', 'Great work! Time for a break.');
+    await checkAchievements();
+  }
+
+  chrome.alarms.clear('pomodoroEnd');
+  pomodoroTimer = null;
+}
+
+// ========== HYDRATION REMINDERS ==========
+async function setupHydrationAlarm(enabled, interval) {
+  if (enabled) {
+    chrome.alarms.create('hydration', { periodInMinutes: interval });
+  } else {
+    chrome.alarms.clear('hydration');
+  }
+}
+
+function showHydrationReminder() {
+  showNotification('💧 Hydration Reminder', 'Time to drink some water! Stay hydrated.');
+}
+
+// ========== BLOCK SCHEDULES ==========
+async function activateBlockSchedule(scheduleId) {
+  const schedules = await getSetting('blockSchedules', []);
+  const schedule = schedules.find(s => s.id === scheduleId);
+
+  if (!schedule) return;
+
+  // Apply schedule's blocked sites temporarily
+  await saveSetting('activeSchedule', scheduleId);
+
+  // Reload current tab to apply blocking
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tabs.length > 0) {
+    chrome.tabs.reload(tabs[0].id);
+  }
+
+  showNotification(`🚫 ${schedule.name} Activated`, `Block schedule is now active`);
+}
+
+function showNotification(title, message) {
+  chrome.notifications.create({
+    type: 'basic',
+    iconUrl: 'icons/icon128.png',
+    title,
+    message
+  });
 }
 
 async function exportAllData() {
@@ -890,10 +1130,24 @@ async function init() {
     customCategories = await getSetting('customCategories', {});
     await loadBlockedSites();
     await loadGoals();
+
     // Setup eye break alarm if enabled
     const eyeBreakEnabled = await getSetting('eyeBreakEnabled', false);
     const eyeBreakInterval = await getSetting('eyeBreakInterval', 20);
     await setupEyeBreakAlarm(eyeBreakEnabled, eyeBreakInterval);
+
+    // Setup hydration alarm if enabled
+    const hydrationEnabled = await getSetting('hydrationEnabled', false);
+    const hydrationInterval = await getSetting('hydrationInterval', 60);
+    await setupHydrationAlarm(hydrationEnabled, hydrationInterval);
+
+    // Setup daily streak check (check every hour)
+    chrome.alarms.create('dailyStreakCheck', { periodInMinutes: 60 });
+
+    // Initialize streak on first run
+    await updateStreak();
+    await checkAchievements();
+
     console.log('FocusTrack AI Complete initialized successfully');
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => { if (tabs.length > 0) startTracking(tabs[0]); });
   } catch (error) { console.error('Init error:', error); }
