@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Generate Icons - FocusTrack AI</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+    }
+    h1 { color: #667eea; }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 10px 5px;
+    }
+    button:hover { background: #5568d3; }
+    canvas {
+      border: 2px solid #e5e7eb;
+      margin: 10px;
+      border-radius: 8px;
+    }
+    .preview { margin: 30px 0; }
+  </style>
+</head>
+<body>
+  <h1>FocusTrack AI - Icon Generator</h1>
+  <p><strong>Step 1:</strong> Click "Download All Icons" below</p>
+  <p><strong>Step 2:</strong> Save the 3 PNG files into the <code>icons/</code> folder</p>
+  <p><strong>Step 3:</strong> Load the extension in Chrome!</p>
+
+  <button onclick="downloadAll()">📥 Download All Icons</button>
+
+  <div class="preview">
+    <h3>Icon Previews:</h3>
+    <canvas id="icon16" width="16" height="16"></canvas>
+    <canvas id="icon48" width="48" height="48"></canvas>
+    <canvas id="icon128" width="128" height="128"></canvas>
+  </div>
+
+  <script>
+    function drawIcon(canvasId, size) {
+      const canvas = document.getElementById(canvasId);
+      const ctx = canvas.getContext('2d');
+
+      // Gradient background
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#667eea');
+      gradient.addColorStop(1, '#764ba2');
+
+      // Rounded rectangle
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, size, size);
+
+      // Clock icon
+      ctx.strokeStyle = 'white';
+      ctx.fillStyle = 'white';
+      ctx.lineWidth = Math.max(2, size * 0.08);
+
+      const centerX = size / 2;
+      const centerY = size / 2;
+      const clockRadius = size * 0.35;
+
+      // Clock circle
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, clockRadius, 0, 2 * Math.PI);
+      ctx.stroke();
+
+      // Hour hand
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(centerX, centerY - clockRadius * 0.5);
+      ctx.stroke();
+
+      // Minute hand
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(centerX + clockRadius * 0.4, centerY);
+      ctx.stroke();
+
+      // Center dot
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, size * 0.05, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+
+    function downloadIcon(canvasId, filename) {
+      const canvas = document.getElementById(canvasId);
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    function downloadAll() {
+      setTimeout(() => downloadIcon('icon16', 'icon16.png'), 100);
+      setTimeout(() => downloadIcon('icon48', 'icon48.png'), 300);
+      setTimeout(() => downloadIcon('icon128', 'icon128.png'), 500);
+      alert('Downloading icons! Save them to the icons/ folder.');
+    }
+
+    // Draw all icons on load
+    window.onload = function() {
+      drawIcon('icon16', 16);
+      drawIcon('icon48', 48);
+      drawIcon('icon128', 128);
+    };
+  </script>
+</body>
+</html>
