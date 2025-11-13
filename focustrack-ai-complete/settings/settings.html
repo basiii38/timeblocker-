@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FocusTrack AI - Settings</title>
+  <link rel="stylesheet" href="settings.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>⚙️ FocusTrack AI Settings</h1>
+      <button id="backBtn" class="btn-secondary">← Back to Popup</button>
+    </header>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="general">General</button>
+      <button class="tab-btn" data-tab="blocking">Website Blocking</button>
+      <button class="tab-btn" data-tab="goals">Goals & Alerts</button>
+      <button class="tab-btn" data-tab="categories">Categories</button>
+      <button class="tab-btn" data-tab="data">Data & Privacy</button>
+    </div>
+
+    <!-- General Settings Tab -->
+    <div id="general" class="tab-content active">
+      <section class="settings-section">
+        <h2>⚡ General Settings</h2>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label>Idle Detection Timeout</label>
+            <p class="setting-description">Stop tracking after this many minutes of inactivity</p>
+          </div>
+          <select id="idleTimeout">
+            <option value="3">3 minutes</option>
+            <option value="5" selected>5 minutes</option>
+            <option value="10">10 minutes</option>
+            <option value="15">15 minutes</option>
+          </select>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label>Dark Mode</label>
+            <p class="setting-description">Enable dark theme for popup and dashboard</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="darkMode">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label>Enable Notifications</label>
+            <p class="setting-description">Show desktop notifications for goals and focus sessions</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="enableNotifications" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label>Daily Summary Notification</label>
+            <p class="setting-description">Get a summary of your day at 8 PM</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="dailySummary">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </section>
+    </div>
+
+    <!-- Website Blocking Tab -->
+    <div id="blocking" class="tab-content">
+      <section class="settings-section">
+        <h2>🚫 Website Blocking</h2>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <label>Nuclear Mode</label>
+            <p class="setting-description">Block ALL distracting sites immediately</p>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="nuclearMode">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="add-block-section">
+          <h3>Add Blocked Site</h3>
+          <div class="add-block-form">
+            <input type="text" id="blockDomain" placeholder="example.com" class="input-field">
+            <select id="blockType" class="input-field">
+              <option value="always">Always Block</option>
+              <option value="scheduled">Scheduled Block</option>
+              <option value="timeLimit">Time Limit</option>
+            </select>
+            <button id="addBlockBtn" class="btn-primary">+ Add Block</button>
+          </div>
+
+          <!-- Scheduled Block Options -->
+          <div id="scheduledOptions" class="block-options" style="display: none;">
+            <h4>Schedule</h4>
+            <div class="schedule-days">
+              <label><input type="checkbox" value="0"> Sun</label>
+              <label><input type="checkbox" value="1"> Mon</label>
+              <label><input type="checkbox" value="2"> Tue</label>
+              <label><input type="checkbox" value="3"> Wed</label>
+              <label><input type="checkbox" value="4"> Thu</label>
+              <label><input type="checkbox" value="5"> Fri</label>
+              <label><input type="checkbox" value="6"> Sat</label>
+            </div>
+            <div class="schedule-times">
+              <label>
+                Start Time: <input type="time" id="scheduleStart" value="09:00">
+              </label>
+              <label>
+                End Time: <input type="time" id="scheduleEnd" value="17:00">
+              </label>
+            </div>
+          </div>
+
+          <!-- Time Limit Options -->
+          <div id="timeLimitOptions" class="block-options" style="display: none;">
+            <h4>Daily Time Limit</h4>
+            <label>
+              Minutes per day: <input type="number" id="limitMinutes" min="1" max="720" value="30" class="input-field">
+            </label>
+          </div>
+        </div>
+
+        <div class="blocked-sites-list">
+          <h3>Blocked Sites</h3>
+          <div id="blockedSitesList"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Goals & Alerts Tab -->
+    <div id="goals" class="tab-content">
+      <section class="settings-section">
+        <h2>🎯 Goals & Alerts</h2>
+
+        <div class="add-goal-section">
+          <h3>Create New Goal</h3>
+          <div class="add-goal-form">
+            <select id="goalType" class="input-field">
+              <option value="productiveTime">Productive Time Goal</option>
+              <option value="distractingLimit">Distraction Time Limit</option>
+              <option value="siteLimit">Site-Specific Limit</option>
+            </select>
+            <button id="addGoalBtn" class="btn-primary">+ Create Goal</button>
+          </div>
+
+          <!-- Productive Time Options -->
+          <div id="productiveGoalOptions" class="goal-options">
+            <label>
+              Target Minutes: <input type="number" id="productiveMinutes" min="10" max="720" value="120" class="input-field">
+            </label>
+          </div>
+
+          <!-- Distracting Limit Options -->
+          <div id="distractingLimitOptions" class="goal-options" style="display: none;">
+            <label>
+              Limit Minutes: <input type="number" id="distractingMinutes" min="5" max="480" value="60" class="input-field">
+            </label>
+          </div>
+
+          <!-- Site Limit Options -->
+          <div id="siteLimitOptions" class="goal-options" style="display: none;">
+            <label>
+              Domain: <input type="text" id="siteLimitDomain" placeholder="youtube.com" class="input-field">
+            </label>
+            <label>
+              Limit Minutes: <input type="number" id="siteLimitMinutes" min="5" max="480" value="30" class="input-field">
+            </label>
+          </div>
+        </div>
+
+        <div class="goals-list">
+          <h3>Active Goals</h3>
+          <div id="goalsList"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Categories Tab -->
+    <div id="categories" class="tab-content">
+      <section class="settings-section">
+        <h2>📂 Category Management</h2>
+
+        <div class="category-info">
+          <p>Customize how websites are categorized. By default, 100+ popular sites are pre-categorized.</p>
+        </div>
+
+        <div class="add-category-section">
+          <h3>Add Custom Category</h3>
+          <div class="add-category-form">
+            <input type="text" id="categoryDomain" placeholder="example.com" class="input-field">
+            <select id="categoryType" class="input-field">
+              <option value="productive">Productive</option>
+              <option value="neutral">Neutral</option>
+              <option value="distracting">Distracting</option>
+              <option value="uncategorized">Uncategorized</option>
+            </select>
+            <button id="addCategoryBtn" class="btn-primary">+ Add</button>
+          </div>
+        </div>
+
+        <div class="categories-list">
+          <h3>Custom Categories</h3>
+          <div id="customCategoriesList"></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Data & Privacy Tab -->
+    <div id="data" class="tab-content">
+      <section class="settings-section">
+        <h2>💾 Data & Privacy</h2>
+
+        <div class="data-section">
+          <h3>Export Data</h3>
+          <p>Download all your tracking data, settings, and configurations</p>
+          <div class="button-group">
+            <button id="exportJsonBtn" class="btn-primary">Export as JSON</button>
+            <button id="exportCsvBtn" class="btn-primary">Export as CSV</button>
+          </div>
+        </div>
+
+        <div class="data-section">
+          <h3>Import Data</h3>
+          <p>Import previously exported data (JSON format only)</p>
+          <input type="file" id="importFile" accept=".json" style="display: none;">
+          <button id="importBtn" class="btn-secondary">Import JSON File</button>
+        </div>
+
+        <div class="data-section">
+          <h3>Privacy</h3>
+          <div class="setting-item">
+            <div class="setting-info">
+              <label>Exclude Domains from Tracking</label>
+              <p class="setting-description">Add domains that should never be tracked (comma-separated)</p>
+            </div>
+          </div>
+          <textarea id="excludedDomains" class="textarea-field" placeholder="banking.com, personal-email.com" rows="3"></textarea>
+          <button id="saveExcludedBtn" class="btn-secondary">Save Exclusions</button>
+        </div>
+
+        <div class="data-section danger-zone">
+          <h3>⚠️ Danger Zone</h3>
+          <p>Permanently delete all tracking data. This cannot be undone!</p>
+          <button id="resetDataBtn" class="btn-danger">Reset All Data</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="settings.js"></script>
+</body>
+</html>
