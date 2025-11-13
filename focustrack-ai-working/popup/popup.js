@@ -136,13 +136,13 @@ function showError() {
     '<div class="empty">Error loading data<br>Check console for details</div>';
 }
 
-// Global function for buttons
-window.startFocus = async function(duration) {
+// Start focus session function
+async function startFocusSession(duration) {
   console.log('Starting focus session:', duration);
   try {
     const response = await chrome.runtime.sendMessage({
       action: 'startFocusSession',
-      duration
+      duration: duration
     });
     if (response.success) {
       focusSession = response.data;
@@ -151,27 +151,42 @@ window.startFocus = async function(duration) {
   } catch (error) {
     console.error('Focus start error:', error);
   }
-};
+}
 
-// Event listeners
-document.getElementById('endFocusBtn').addEventListener('click', async () => {
-  console.log('Ending focus session');
-  try {
-    await chrome.runtime.sendMessage({ action: 'endFocusSession' });
-    focusSession = null;
-    updateFocusUI();
-  } catch (error) {
-    console.error('Focus end error:', error);
-  }
+// Event listeners - NO INLINE HANDLERS!
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOM loaded, attaching event listeners...');
+
+  // Focus session buttons
+  const focusButtons = document.querySelectorAll('[data-duration]');
+  focusButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const duration = parseInt(button.getAttribute('data-duration'));
+      startFocusSession(duration);
+    });
+  });
+
+  // End focus button
+  document.getElementById('endFocusBtn').addEventListener('click', async () => {
+    console.log('Ending focus session');
+    try {
+      await chrome.runtime.sendMessage({ action: 'endFocusSession' });
+      focusSession = null;
+      updateFocusUI();
+    } catch (error) {
+      console.error('Focus end error:', error);
+    }
+  });
+
+  // Open dashboard button
+  document.getElementById('openDashboardBtn').addEventListener('click', () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('dashboard/dashboard.html') });
+  });
+
+  // Load initial data
+  console.log('Initializing popup...');
+  loadData();
+
+  // Refresh every 5 seconds
+  setInterval(loadData, 5000);
 });
-
-document.getElementById('openDashboardBtn').addEventListener('click', () => {
-  chrome.tabs.create({ url: chrome.runtime.getURL('dashboard/dashboard.html') });
-});
-
-// Load data on startup
-console.log('Initializing popup...');
-loadData();
-
-// Refresh every 5 seconds
-setInterval(loadData, 5000);

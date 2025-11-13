@@ -35,7 +35,7 @@
   <p><strong>Step 2:</strong> Save the 3 PNG files into the <code>icons/</code> folder</p>
   <p><strong>Step 3:</strong> Load the extension in Chrome!</p>
 
-  <button onclick="downloadAll()">📥 Download All Icons</button>
+  <button id="downloadBtn">📥 Download All Icons</button>
 
   <div class="preview">
     <h3>Icon Previews:</h3>
@@ -105,12 +105,15 @@
       alert('Downloading icons! Save them to the icons/ folder.');
     }
 
+    // Attach event listener properly
+    document.getElementById('downloadBtn').addEventListener('click', downloadAll);
+
     // Draw all icons on load
-    window.onload = function() {
+    window.addEventListener('load', () => {
       drawIcon('icon16', 16);
       drawIcon('icon48', 48);
       drawIcon('icon128', 128);
-    };
+    });
   </script>
 </body>
 </html>

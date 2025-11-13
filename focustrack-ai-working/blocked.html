@@ -84,7 +84,7 @@
     <div class="motivation" id="quote">
       "Focus on being productive instead of busy." - Tim Ferriss
     </div>
-    <button onclick="window.history.back()">← Go Back</button>
+    <button id="goBackBtn">← Go Back</button>
   </div>
 
   <script>
@@ -96,10 +96,18 @@
       "The way to get started is to quit talking and begin doing. - Walt Disney"
     ];
 
+    // Get domain from URL params
     const params = new URLSearchParams(window.location.search);
     const domain = params.get('domain') || 'this site';
     document.getElementById('domain').textContent = domain;
+
+    // Set random quote
     document.getElementById('quote').textContent = quotes[Math.floor(Math.random() * quotes.length)];
+
+    // Attach event listener properly
+    document.getElementById('goBackBtn').addEventListener('click', () => {
+      window.history.back();
+    });
   </script>
 </body>
 </html>
