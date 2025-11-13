@@ -408,7 +408,7 @@ document.getElementById('dateRange').addEventListener('change', (e) => {
 
 // Settings button
 document.getElementById('openSettingsBtn').addEventListener('click', () => {
-  chrome.tabs.create({ url: chrome.runtime.getURL('settings/settings.html') });
+  chrome.tabs.create({ url: chrome.runtime.getURL('settings/settings.html') + '?from=dashboard' });
 });
 
 // Load data on startup

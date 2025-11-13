@@ -611,7 +611,17 @@ async function resetAllData() {
 
 // Back button
 document.getElementById('backBtn').addEventListener('click', () => {
-  window.close();
+  // Check if opened from dashboard
+  const urlParams = new URLSearchParams(window.location.search);
+  const from = urlParams.get('from');
+
+  if (from === 'dashboard') {
+    // Navigate back to dashboard
+    window.location.href = chrome.runtime.getURL('dashboard/dashboard.html');
+  } else {
+    // Close the tab (default behavior)
+    window.close();
+  }
 });
 
 // Make functions global for onclick handlers

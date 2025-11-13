@@ -104,8 +104,23 @@ async function loadGoals() {
 }
 
 function shouldBlockSite(domain) {
+  // If in focus session with whitelist, block everything not in whitelist
+  if (focusSession && focusSession.allowedSites && focusSession.allowedSites.length > 0) {
+    const isAllowed = focusSession.allowedSites.some(allowed => domain.includes(allowed) || allowed.includes(domain));
+    if (!isAllowed) return true; // Block if not in whitelist
+  }
+
+  // Regular blocking logic
   const site = blockedSites.find(s => s.domain === domain);
-  if (!site || !site.enabled) return false;
+  if (!site || !site.enabled) {
+    // If in focus session without whitelist, block distracting sites
+    if (focusSession) {
+      const category = getCategoryForUrl('https://' + domain);
+      if (category === 'distracting') return true;
+    }
+    return false;
+  }
+
   if (focusSession && site.category === 'distracting') return true;
   if (site.blockType === 'always') return true;
   if (site.blockType === 'scheduled') return isWithinSchedule(site.schedule);
@@ -236,9 +251,15 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   else if (alarm.name === 'breakTimerEnd') endBreakTimer();
 });
 
-async function startFocusSession(duration) {
+async function startFocusSession(duration, allowedSites = []) {
   const now = Date.now();
-  focusSession = { startTime: now, endTime: now + duration * 60 * 1000, duration, completed: false };
+  focusSession = {
+    startTime: now,
+    endTime: now + duration * 60 * 1000,
+    duration,
+    completed: false,
+    allowedSites: allowedSites
+  };
   chrome.alarms.create('focusSessionEnd', { when: focusSession.endTime });
   return focusSession;
 }
@@ -278,7 +299,7 @@ async function handleMessage(message) {
     case 'getStatus': return { success: true, data: { status: isIdle ? 'idle' : currentTab ? 'tracking' : 'not-tracking', currentTab, currentDuration } };
     case 'getTodayStats': return { success: true, data: await getTodayEntries() };
     case 'getDateRangeStats': return { success: true, data: await getDateRangeEntries(new Date(message.startDate), new Date(message.endDate)) };
-    case 'startFocusSession': return { success: true, data: await startFocusSession(message.duration) };
+    case 'startFocusSession': return { success: true, data: await startFocusSession(message.duration, message.allowedSites || []) };
     case 'endFocusSession': await endFocusSession(false); return { success: true };
     case 'getFocusSession': return { success: true, data: focusSession };
     case 'startBreakTimer': return { success: true, data: startBreakTimer(message.minutes) };

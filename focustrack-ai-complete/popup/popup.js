@@ -3,7 +3,6 @@ console.log('Popup loaded');
 
 let focusSession = null;
 let breakTimer = null;
-let currentDomain = null;
 
 function formatTime(seconds) {
   const hours = Math.floor(seconds / 3600);
@@ -114,18 +113,13 @@ function updateCurrentSite(data) {
 
   if (data.status === 'tracking' && data.currentTab) {
     section.style.display = 'block';
-    currentDomain = data.currentTab.domain;
     document.getElementById('currentDomain').textContent = data.currentTab.domain;
     document.getElementById('currentTime').textContent = formatTime(data.currentDuration);
     const badge = document.getElementById('currentCategory');
     badge.textContent = data.currentTab.category;
     badge.className = 'category-badge ' + data.currentTab.category;
-
-    // Reset category selector
-    document.getElementById('categorySelector').value = '';
   } else {
     section.style.display = 'none';
-    currentDomain = null;
   }
 }
 
@@ -166,10 +160,18 @@ function showError() {
 // Start focus session function
 async function startFocusSession(duration) {
   console.log('Starting focus session:', duration);
+
+  // Get allowed sites from input
+  const allowedSitesInput = document.getElementById('allowedSites').value.trim();
+  const allowedSites = allowedSitesInput
+    ? allowedSitesInput.split(',').map(s => s.trim().toLowerCase()).filter(s => s.length > 0)
+    : [];
+
   try {
     const response = await chrome.runtime.sendMessage({
       action: 'startFocusSession',
-      duration: duration
+      duration: duration,
+      allowedSites: allowedSites
     });
     if (response.success) {
       focusSession = response.data;
@@ -241,45 +243,6 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Ending break timer');
     breakTimer = null;
     updateBreakUI();
-  });
-
-  // Category selector
-  document.getElementById('categorySelector').addEventListener('change', async (e) => {
-    const newCategory = e.target.value;
-    if (!newCategory || !currentDomain) return;
-
-    console.log('Changing category for', currentDomain, 'to', newCategory);
-    try {
-      // Get current custom categories
-      const response = await chrome.runtime.sendMessage({
-        action: 'getSetting',
-        key: 'customCategories',
-        defaultValue: {}
-      });
-
-      let customCategories = response.success ? response.data : {};
-      customCategories[currentDomain] = newCategory;
-
-      // Save updated categories
-      await chrome.runtime.sendMessage({
-        action: 'saveSetting',
-        key: 'customCategories',
-        value: customCategories
-      });
-
-      // Show confirmation by updating the badge
-      const badge = document.getElementById('currentCategory');
-      badge.textContent = newCategory;
-      badge.className = 'category-badge ' + newCategory;
-
-      // Reset selector
-      e.target.value = '';
-
-      // Reload data to reflect changes
-      setTimeout(loadData, 500);
-    } catch (error) {
-      console.error('Category change error:', error);
-    }
   });
 
   // Load initial data
